@@ -60,6 +60,7 @@ def train_models(app):
         app.train_status.append(f"Ошибка обучения моделей: {str(e)}")
         QMessageBox.critical(app, "Ошибка", f"Ошибка обучения моделей: {str(e)}")
 
+
 def evaluate_models(app):
     try:
         app.eval_results.clear()
