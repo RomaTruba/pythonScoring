@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QApplication
 from src.app import CreditScoringApp
 
 
-# Фикстура для QApplication (вызывается один раз для всех тестов)
+
 @pytest.fixture(scope="session")
 def qapp():
     app = QApplication([])
@@ -18,12 +18,12 @@ def test_report_generation(qtbot, tmp_path, qapp):
     with patch.object(CreditScoringApp, 'show_login_dialog', return_value=True):
         print("\n=== Тест генерации отчетов ===")
 
-        # 1. Инициализация приложения
+
         print("Инициализация CreditScoringApp")
         app = CreditScoringApp()
         app.current_user_role = 'admin'
 
-        # 2. Мок базы данных
+
         print("Настройка мока БД")
         mock_conn = MagicMock()
         mock_cursor = MagicMock()
@@ -35,7 +35,7 @@ def test_report_generation(qtbot, tmp_path, qapp):
         mock_conn.cursor.return_value = mock_cursor
         app.conn = mock_conn
 
-        # 3. Тестовый экспорт
+
         print("Подготовка тестового экспорта")
         report_path = os.path.join(tmp_path, 'credit_scoring_report_test.csv')
 
@@ -47,11 +47,11 @@ def test_report_generation(qtbot, tmp_path, qapp):
 
         app.export_report = mock_export_report
 
-        # 4. Выполнение экспорта
+
         print("Выполнение экспорта")
         result_path = app.export_report()
 
-        # 5. Проверки
+
         print("\nПроверка результатов:")
         print(f"- Путь к файлу: {result_path}")
 
