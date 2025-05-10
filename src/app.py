@@ -308,3 +308,23 @@ class CreditScoringApp(QMainWindow):
 
             self.analysis_tab.setLayout(layout)
 
+        def create_admin_tab(self):
+            self.admin_tab = QWidget()
+            self.tabs.addTab(self.admin_tab, "Администрирование")
+
+            layout = QVBoxLayout()
+
+            clear_db_button = QPushButton("Очистить базу данных")
+            clear_db_button.clicked.connect(lambda: clear_database(self))
+            layout.addWidget(clear_db_button)
+
+            export_report_button = QPushButton("Экспорт отчета")
+            export_report_button.clicked.connect(lambda: export_report(self))
+            layout.addWidget(export_report_button)
+
+            self.admin_tab.setLayout(layout)
+
+        def closeEvent(self, event):
+            self.conn.close()
+            event.accept()
+
