@@ -117,3 +117,19 @@ def evaluate_models(app):
 
     except Exception as e:
         QMessageBox.critical(app, "Ошибка", f"Ошибка оценки моделей: {str(e)}")
+
+
+def ensemble_predict(models, X, weights=None):
+    if weights is None:
+        weights = [1 / len(models)] * len(models)
+
+    preds = []
+    for model in models:
+        pred = model.predict(X)
+        preds.append(pred)
+
+    weighted_preds = np.zeros_like(preds[0])
+    for pred, weight in zip(preds, weights):
+        weighted_preds += pred * weight
+
+    return weighted_preds
