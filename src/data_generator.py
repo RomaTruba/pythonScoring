@@ -131,6 +131,23 @@ def generate_credit_data(num_samples=1000, random_state=42):
 
     return data
 
+def generate_sample_data(app):
+    try:
+        app.data1 = generate_credit_data(num_samples=1500, random_state=77)
+        app.data2 = generate_credit_data(num_samples=1500, random_state=123)
+
+        app.data_preview.setText(f"Сгенерировано 2 набора данных по 1500 записей\n\nПервые 5 записей набора 1:\n" +
+                                 str(app.data1.head(5)))
+
+        QMessageBox.information(app, "Успех", "Данные успешно сгенерированы!")
+
+        if not prepare_data(app):
+            return
+        from src.model_trainer import train_models
+        train_models(app)
+
+    except Exception as e:
+        QMessageBox.critical(app, "Ошибка", f"Ошибка генерации данных: {str(e)}")
 
 def prepare_data(app):
     try:
