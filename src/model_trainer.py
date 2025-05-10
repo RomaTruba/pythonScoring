@@ -59,3 +59,61 @@ def train_models(app):
     except Exception as e:
         app.train_status.append(f"Ошибка обучения моделей: {str(e)}")
         QMessageBox.critical(app, "Ошибка", f"Ошибка обучения моделей: {str(e)}")
+
+def evaluate_models(app):
+    try:
+        app.eval_results.clear()
+
+        if 'model1' in app.models:
+            y1_pred = app.models['model1'].predict(app.X1_test_scaled)
+            y1_pred_classes = np.argmax(y1_pred, axis=1)
+
+            report1 = classification_report(
+                app.y1_test, y1_pred_classes,
+                target_names=['Хороший', 'Средний', 'Плохой'])
+
+            cm1 = confusion_matrix(app.y1_test, y1_pred_classes)
+
+            app.eval_results.append("=== Модель 1 ===\n")
+            app.eval_results.append(report1 + "\n")
+            app.eval_results.append(f"Точность: {accuracy_score(app.y1_test, y1_pred_classes):.4f}\n\n")
+            app.eval_results.append("Матрица ошибок:\n")
+            app.eval_results.append(str(cm1) + "\n\n")
+
+        if 'model2' in app.models:
+            y2_pred = app.models['model2'].predict(app.X2_test_scaled)
+            y2_pred_classes = np.argmax(y2_pred, axis=1)
+
+            report2 = classification_report(
+                app.y2_test, y2_pred_classes,
+                target_names=['Хороший', 'Средний', 'Плохой'])
+
+            cm2 = confusion_matrix(app.y2_test, y2_pred_classes)
+
+            app.eval_results.append("=== Модель 2 ===\n")
+            app.eval_results.append(report2 + "\n")
+            app.eval_results.append(f"Точность: {accuracy_score(app.y2_test, y2_pred_classes):.4f}\n\n")
+            app.eval_results.append("Матрица ошибок:\n")
+            app.eval_results.append(str(cm2) + "\n\n")
+
+        if len(app.models) >= 2:
+            ensemble_pred = ensemble_predict([app.models['model1'], app.models['model2']],
+                                            app.X1_test_scaled, weights=[0.6, 0.4])
+            ensemble_pred_classes = np.argmax(ensemble_pred, axis=1)
+
+            report_ensemble = classification_report(
+                app.y1_test, ensemble_pred_classes,
+                target_names=['Хороший', 'Средний', 'Плохой'])
+
+            cm_ensemble = confusion_matrix(app.y1_test, ensemble_pred_classes)
+
+            app.eval_results.append("=== Ансамбль моделей ===\n")
+            app.eval_results.append(report_ensemble + "\n")
+            app.eval_results.append(f"Точность: {accuracy_score(app.y1_test, ensemble_pred_classes):.4f}\n")
+            app.eval_results.append("Матрица ошибок:\n")
+            app.eval_results.append(str(cm_ensemble) + "\n")
+
+        QMessageBox.information(app, "Успех", "Оценка моделей завершена!")
+
+    except Exception as e:
+        QMessageBox.critical(app, "Ошибка", f"Ошибка оценки моделей: {str(e)}")
