@@ -66,59 +66,60 @@ def plot_analysis(app, plot_type):
             if not app.models:
                 QMessageBox.warning(app, "Предупреждение", "Модели не обучены!")
                 return
-    ax = app.figure.add_subplot(111)
 
-    for model_name, model in app.models.items():
-        y_test = app.y1_test_cat if model_name == 'model1' else app.y2_test_cat
-        X_test_scaled = app.X1_test_scaled if model_name == 'model1' else app.X2_test_scaled
+            ax = app.figure.add_subplot(111)
 
-        y_pred = model.predict(X_test_scaled)
+            for model_name, model in app.models.items():
+                y_test = app.y1_test_cat if model_name == 'model1' else app.y2_test_cat
+                X_test_scaled = app.X1_test_scaled if model_name == 'model1' else app.X2_test_scaled
 
-        for i in range(3):
-            fpr, tpr, _ = roc_curve(y_test[:, i], y_pred[:, i])
-            roc_auc = auc(fpr, tpr)
-            ax.plot(fpr, tpr, label=f'{model_name} Класс {i} (AUC = {roc_auc:.2f})')
+                y_pred = model.predict(X_test_scaled)
 
-    if len(app.models) >= 2:
-        ensemble_pred = ensemble_predict(
-            [app.models['model1'], app.models['model2']],
-            app.X1_test_scaled,
-            weights=[0.6, 0.4]
-        )
+                for i in range(3):
+                    fpr, tpr, _ = roc_curve(y_test[:, i], y_pred[:, i])
+                    roc_auc = auc(fpr, tpr)
+                    ax.plot(fpr, tpr, label=f'{model_name} Класс {i} (AUC = {roc_auc:.2f})')
 
-        for i in range(3):
-            fpr, tpr, _ = roc_curve(app.y1_test_cat[:, i], ensemble_pred[:, i])
-            roc_auc = auc(fpr, tpr)
-            ax.plot(fpr, tpr, linestyle='--', label=f'Ансамбль Класс {i} (AUC = {roc_auc:.2f})')
+            if len(app.models) >= 2:
+                ensemble_pred = ensemble_predict(
+                    [app.models['model1'], app.models['model2']],
+                    app.X1_test_scaled,
+                    weights=[0.6, 0.4]
+                )
 
-    ax.plot([0, 1], [0, 1], 'k--')
-    ax.set_xlim([0.0, 1.0])
-    ax.set_ylim([0.0, 1.05])
-    ax.set_xlabel('False Positive Rate')
-    ax.set_ylabel('True Positive Rate')
-    ax.set_title('ROC кривые для всех моделей')
-    ax.legend(loc="lower right")
+                for i in range(3):
+                    fpr, tpr, _ = roc_curve(app.y1_test_cat[:, i], ensemble_pred[:, i])
+                    roc_auc = auc(fpr, tpr)
+                    ax.plot(fpr, tpr, linestyle='--', label=f'Ансамбль Класс {i} (AUC = {roc_auc:.2f})')
 
-elif plot_type == 'credit_stats':
-ax = app.figure.add_subplot(111)
-grouped = app.data1.groupby('credit_class')[
-    ['requested_loans', 'issued_loans', 'overdue_loans']].mean()
-grouped.plot(kind='bar', ax=ax)
-ax.set_title('Средняя статистика по кредитам в зависимости от класса')
-ax.set_xlabel('Класс кредита')
-ax.set_ylabel('Количество')
-ax.set_xticklabels(['Хороший', 'Средний', 'Плохой'], rotation=0)
-ax.legend(['Запрошенные', 'Выданные', 'Просроченные'])
+            ax.plot([0, 1], [0, 1], 'k--')
+            ax.set_xlim([0.0, 1.0])
+            ax.set_ylim([0.0, 1.05])
+            ax.set_xlabel('False Positive Rate')
+            ax.set_ylabel('True Positive Rate')
+            ax.set_title('ROC кривые для всех моделей')
+            ax.legend(loc="lower right")
 
-elif plot_type == 'credit_rating':
-ax = app.figure.add_subplot(111)
-sns.boxplot(x='credit_class', y='credit_rating', data=app.data1, ax=ax)
-ax.set_title('Распределение кредитного рейтинга по классам')
-ax.set_xlabel('Класс кредита')
-ax.set_ylabel('Рейтинг НБКИ')
-ax.set_xticklabels(['Хороший', 'Средний', 'Плохой'])
+        elif plot_type == 'credit_stats':
+            ax = app.figure.add_subplot(111)
+            grouped = app.data1.groupby('credit_class')[
+                ['requested_loans', 'issued_loans', 'overdue_loans']].mean()
+            grouped.plot(kind='bar', ax=ax)
+            ax.set_title('Средняя статистика по кредитам в зависимости от класса')
+            ax.set_xlabel('Класс кредита')
+            ax.set_ylabel('Количество')
+            ax.set_xticklabels(['Хороший', 'Средний', 'Плохой'], rotation=0)
+            ax.legend(['Запрошенные', 'Выданные', 'Просроченные'])
 
-app.canvas.draw()
+        elif plot_type == 'credit_rating':
+            ax = app.figure.add_subplot(111)
+            sns.boxplot(x='credit_class', y='credit_rating', data=app.data1, ax=ax)
+            ax.set_title('Распределение кредитного рейтинга по классам')
+            ax.set_xlabel('Класс кредита')
+            ax.set_ylabel('Рейтинг НБКИ')
+            ax.set_xticklabels(['Хороший', 'Средний', 'Плохой'])
 
-except Exception as e:
-QMessageBox.critical(app, "Ошибка", f"Ошибка построения графика: {str(e)}")
+        app.canvas.draw()
+
+    except Exception as e:
+        QMessageBox.critical(app, "Ошибка", f"Ошибка построения графика: {str(e)}")
