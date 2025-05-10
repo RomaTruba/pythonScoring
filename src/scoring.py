@@ -83,7 +83,7 @@ def calculate_score(app):
             color = "red"
             comment = "Высокий риск. Кредит не рекомендуется к выдаче."
 
-        # Рассчитываем общий рейтинг
+
         factors = [
             ('age', client_data['age'], 0.15,
              lambda x: min(max((x - 25) / (45 - 25) * 100, 0), 100) if x <= 45 else max(
@@ -98,7 +98,7 @@ def calculate_score(app):
         ]
         client_score = sum(calc(value) * weight for _, value, weight, calc in factors)
 
-        # Сохраняем данные клиента
+
         client_id = save_client_data(app, client_data, client_score, class_names[pred_class], comment)
         if not client_id:
             return
@@ -122,7 +122,7 @@ def calculate_score(app):
         app.score_comment.setHtml(result_text)
         app.current_client_id = client_id
 
-        # Обновляем правую панель с детализацией скоринга
+
         app.right_panel.layout().removeWidget(app.analysis_group)
         app.analysis_group.deleteLater()
         app.analysis_group = display_scoring_breakdown(client_data, client_score, class_names[pred_class])
