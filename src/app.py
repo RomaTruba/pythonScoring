@@ -21,7 +21,7 @@ class CreditScoringApp(QMainWindow):
         self.setWindowTitle("Система кредитного скоринга")
         self.setGeometry(100, 100, 1400, 900)
 
-        # Инициализация данных и моделей
+
         self.data1 = None
         self.data2 = None
         self.models = {}
@@ -29,30 +29,30 @@ class CreditScoringApp(QMainWindow):
         self.current_client_id = None
         self.current_user_role = None
 
-        # Создаем фигуры для графиков
+
         self.figure = plt.figure(figsize=(10, 8))
         self.canvas = FigureCanvas(self.figure)
 
-        # Инициализация базы данных
+
         self.conn, self.cursor = init_database()
 
-        # Показываем диалог авторизации
+
         if not self.show_login_dialog():
             sys.exit()
 
-        # Создание главного виджета
+
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
 
-        # Основной макет
+
         self.main_layout = QHBoxLayout()
         self.central_widget.setLayout(self.main_layout)
 
-        # Создание вкладок
+
         self.tabs = QTabWidget()
         self.main_layout.addWidget(self.tabs)
 
-        # Создание интерфейса
+
         self.create_menu()
         self.create_data_tab()
         self.create_model_tab()
@@ -61,7 +61,7 @@ class CreditScoringApp(QMainWindow):
         if self.current_user_role == 'admin':
             self.create_admin_tab()
 
-        # Генерация тестовых данных
+
         generate_sample_data(self)
 
     def show_login_dialog(self):
