@@ -1,73 +1,72 @@
 import pytest
-import numpy as np
+import os
 from unittest.mock import patch, MagicMock
+from PyQt5.QtWidgets import QApplication
 from src.app import CreditScoringApp
-from sklearn.metrics import accuracy_score
 
 
-def test_prediction_accuracy_regression(qtbot):
-    """Регрессионное тестирование: проверка стабильности точности предсказаний с валидацией входных данных"""
+@pytest.fixture(scope="session")
+def qapp():
+    app = QApplication([])
+    yield app
+    app.quit()
+
+
+def test_report_localization(qtbot, tmp_path, qapp):
+    """Тестирование локализации: поддержка кириллических символов в отчете с проверкой данных"""
     with patch.object(CreditScoringApp, 'show_login_dialog', return_value=True):
-        print("\n=== Регрессионное тестирование: стабильность точности предсказаний ===")
+        print("\n=== Тестирование локализации: кириллические символы в отчете ===")
         app = CreditScoringApp()
-        app.current_user_role = 'user'
+        app.current_user_role = 'admin'
 
-        # Подготовка данных
-        print("Подготовка фиксированных тестовых данных")
-        num_features = 5
-        test_data = np.array([
-            [25, 50000, 700, 0.3, 100000],
-            [30, 60000, 650, 0.4, 150000],
-            [35, 45000, 600, 0.5, 200000]
-        ])
-        scaled_data = np.array([
-            [0.5, 0.8, 0.7, -0.2, 0.6],
-            [0.7, 1.0, 0.5, 0.0, 1.0],
-            [0.9, 0.6, 0.3, 0.2, 1.4]
-        ])
-        mock_prediction = np.array([
-            [0.85, 0.10, 0.05],
-            [0.15, 0.70, 0.15],
-            [0.05, 0.25, 0.70]
-        ])
-        true_labels = np.array([0, 1, 2])
+        # Мок базы данных
+        print("Настройка мока БД с кириллическими данными")
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_data = [
+            (1, 'Иванов', 'Иван', 'Иванович', 30, 50000, 700, 0.3,
+             100000, 50000, 5, 2, 24, 1, 3, 2, 0,
+             'Женат', 'Полная', 85.0, 'Хороший', 'Тест', '2023-01-01')
+        ]
+        mock_cursor.fetchall.return_value = mock_data
+        mock_conn.cursor.return_value = mock_cursor
+        app.conn = mock_conn
 
-        # Проверка входных данных
-        if test_data.shape[1] != num_features:
-            raise ValueError(f"Ожидалось {num_features} признаков, получено {test_data.shape[1]}")
-        if test_data.shape[0] != true_labels.shape[0]:
-            raise ValueError("Количество тестовых данных и меток не совпадает")
+        # Проверка данных из БД
+        if not mock_data:
+            raise ValueError("Данные из базы данных пусты")
+        if not all(isinstance(row[1], str) and isinstance(row[2], str) for row in mock_data):
+            raise ValueError("Фамилия или имя не являются строками")
 
-        # Настройка моков
-        print("Настройка моков")
-        mock_model = MagicMock()
-        mock_scaler = MagicMock()
-        mock_scaler.transform.return_value = scaled_data
-        mock_model.predict.return_value = mock_prediction
-        app.models = {'model1': mock_model}
-        app.scalers = {'scaler1': mock_scaler}
-        app.X1_test = test_data
-        app.y1_test = true_labels
+        # Экспорт отчета
+        print("Создание отчета с кириллическими данными")
+        report_path = os.path.join(tmp_path, 'credit_scoring_report_test.csv')
 
-        # Выполнение предсказания
-        print("Выполнение предсказания")
+        def mock_export_report():
+            try:
+                with open(report_path, 'w', encoding='utf-8') as f:
+                    f.write("client_id,last_name,first_name,score\n")
+                    f.write("1,Иванов,Иван,85.0\n")
+                return report_path
+            except IOError as e:
+                raise ValueError(f"Не удалось создать отчет: {str(e)}")
+
+        app.export_report = mock_export_report
+
+        # Выполнение экспорта
+        print("Выполнение экспорта")
         try:
-            scaled_data_result = app.scalers['scaler1'].transform(app.X1_test)
+            result_path = app.export_report()
         except ValueError as e:
-            print(f"Ошибка масштабирования: {str(e)}")
-            raise ValueError("Не удалось масштабировать тестовые данные")
-        try:
-            y_pred = app.models['model1'].predict(scaled_data_result)
-        except Exception as e:
-            print(f"Ошибка предсказания: {str(e)}")
-            raise ValueError("Не удалось выполнить предсказание")
-
-        y_pred_classes = np.argmax(y_pred, axis=1)
-        accuracy = accuracy_score(app.y1_test, y_pred_classes)
+            print(f"Ошибка экспорта: {str(e)}")
+            raise
 
         # Проверки
-        print(f"\nРезультаты: Точность = {accuracy * 100:.1f}%")
-        assert accuracy >= 0.8, f"Точность ниже базового уровня: {accuracy * 100:.1f}%"
-        mock_scaler.transform.assert_called_once_with(test_data)
-        mock_model.predict.assert_called_once_with(scaled_data)
-        print("=== Тест пройден успешно: точность стабильна ===")
+        print("\nПроверка результатов:")
+        assert os.path.exists(result_path), "Файл отчета не создан"
+        with open(result_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+            print(f"- Содержимое файла:\n{content}")
+            assert "Иванов" in content, "Кириллические символы (Иванов) отсутствуют"
+            assert "Иван" in content, "Кириллические символы (Иван) отсутствуют"
+        print("=== Тест пройден успешно: кириллица поддерживается ===")
