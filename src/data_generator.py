@@ -130,3 +130,44 @@ def generate_credit_data(num_samples=1000, random_state=42):
     })
 
     return data
+
+
+def prepare_data(app):
+    try:
+        app.data1 = pd.get_dummies(app.data1, columns=['marital_status', 'employment_type'])
+        app.data2 = pd.get_dummies(app.data2, columns=['marital_status', 'employment_type'])
+
+        for col in app.data1.columns:
+            if col not in app.data2.columns:
+                app.data2[col] = 0
+        for col in app.data2.columns:
+            if col not in app.data1.columns:
+                app.data1[col] = 0
+
+        X1 = app.data1.drop(['risk_score', 'credit_class'], axis=1)
+        y1 = app.data1['credit_class']
+        app.X1_train, app.X1_test, app.y1_train, app.y1_test = train_test_split(
+            X1, y1, test_size=0.2, random_state=42)
+
+        X2 = app.data2.drop(['risk_score', 'credit_class'], axis=1)
+        y2 = app.data2['credit_class']
+        app.X2_train, app.X2_test, app.y2_train, app.y2_test = train_test_split(
+            X2, y2, test_size=0.2, random_state=42)
+
+        app.scalers['scaler1'] = StandardScaler()
+        app.X1_train_scaled = app.scalers['scaler1'].fit_transform(app.X1_train)
+        app.X1_test_scaled = app.scalers['scaler1'].transform(app.X1_test)
+
+        app.scalers['scaler2'] = StandardScaler()
+        app.X2_train_scaled = app.scalers['scaler2'].fit_transform(app.X2_train)
+        app.X2_test_scaled = app.scalers['scaler2'].transform(app.X2_test)
+
+        app.y1_train_cat = to_categorical(app.y1_train)
+        app.y1_test_cat = to_categorical(app.y1_test)
+        app.y2_train_cat = to_categorical(app.y2_train)
+        app.y2_test_cat = to_categorical(app.y2_test)
+
+        return True
+    except Exception as e:
+        QMessageBox.critical(app, "Ошибка", f"Ошибка подготовки данных: {str(e)}")
+        return False
