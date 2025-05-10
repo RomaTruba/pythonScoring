@@ -17,7 +17,7 @@ def test_model_training_performance(qtbot):
         app = CreditScoringApp()
         app.current_user_role = 'user'
 
-        # Подготовка данных
+
         print("Шаг 1: Подготовка тестовых данных")
         np.random.seed(42)
         num_samples = 1000
@@ -37,7 +37,7 @@ def test_model_training_performance(qtbot):
         app.data1 = pd.DataFrame(X)
         app.data1['credit_class'] = y
 
-        # Масштабирование
+
         print("Шаг 2: Масштабирование данных")
         app.scalers = {'scaler1': StandardScaler()}
         try:
@@ -47,7 +47,7 @@ def test_model_training_performance(qtbot):
             raise ValueError("Не удалось масштабировать данные")
         app.y1_train = y
 
-        # Создание модели
+
         print("Шаг 3: Создание модели")
         model = Sequential([
             Input(shape=(num_features,)),
@@ -56,7 +56,7 @@ def test_model_training_performance(qtbot):
         ])
         model.compile(optimizer=Adam(learning_rate=0.001), loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
-        # Обучение с измерением времени
+
         print("Шаг 4: Обучение модели с измерением времени")
         start_time = time.time()
         try:
@@ -68,7 +68,7 @@ def test_model_training_performance(qtbot):
 
         app.models = {'model1': model}
 
-        # Проверки
+
         print(f"\nРезультаты: Время обучения = {duration:.2f} секунд")
         assert duration < 10, f"Обучение заняло слишком долго: {duration:.2f} секунд"
         assert 'loss' in history.history, "История обучения не содержит loss"
