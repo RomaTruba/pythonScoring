@@ -19,7 +19,7 @@ def test_report_localization(qtbot, tmp_path, qapp):
         app = CreditScoringApp()
         app.current_user_role = 'admin'
 
-        # Мок базы данных
+
         print("Настройка мока БД с кириллическими данными")
         mock_conn = MagicMock()
         mock_cursor = MagicMock()
@@ -32,13 +32,13 @@ def test_report_localization(qtbot, tmp_path, qapp):
         mock_conn.cursor.return_value = mock_cursor
         app.conn = mock_conn
 
-        # Проверка данных из БД
+
         if not mock_data:
             raise ValueError("Данные из базы данных пусты")
         if not all(isinstance(row[1], str) and isinstance(row[2], str) for row in mock_data):
             raise ValueError("Фамилия или имя не являются строками")
 
-        # Экспорт отчета
+
         print("Создание отчета с кириллическими данными")
         report_path = os.path.join(tmp_path, 'credit_scoring_report_test.csv')
 
@@ -53,7 +53,7 @@ def test_report_localization(qtbot, tmp_path, qapp):
 
         app.export_report = mock_export_report
 
-        # Выполнение экспорта
+
         print("Выполнение экспорта")
         try:
             result_path = app.export_report()
@@ -61,7 +61,7 @@ def test_report_localization(qtbot, tmp_path, qapp):
             print(f"Ошибка экспорта: {str(e)}")
             raise
 
-        # Проверки
+
         print("\nПроверка результатов:")
         assert os.path.exists(result_path), "Файл отчета не создан"
         with open(result_path, 'r', encoding='utf-8') as f:
