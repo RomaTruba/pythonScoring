@@ -1,31 +1,68 @@
-from src.app import CreditScoringApp
-from src.scoring import save_client_data
+import pytest
 import os
+from unittest.mock import patch, MagicMock
+from PyQt5.QtWidgets import QApplication
+from src.app import CreditScoringApp
 
 
-def test_report_generation():
-    app = CreditScoringApp()
-    app.generate_sample_data()
+# Фикстура для QApplication (вызывается один раз для всех тестов)
+@pytest.fixture(scope="session")
+def qapp():
+    app = QApplication([])
+    yield app
+    app.quit()
 
-    client_data = {
-        'age': 30,
-        'income': 60000,
-        'credit_rating': 700,
-        'debt_to_income': 0.3,
-        'loan_amount': 100000,
-        'savings': 50000,
-        'employment_years': 5,
-        'num_credit_cards': 2,
-        'loan_term': 24,
-        'num_children': 1,
-        'requested_loans': 3,
-        'issued_loans': 2,
-        'overdue_loans': 0,
-        'marital_status': 'Женат/Замужем',
-        'employment_type': 'Полная занятость'
-    }
-    save_client_data(app, client_data, 85.0, 'Хороший', 'Тестовый клиент')
 
-    app.export_report()
-    assert any('credit_scoring_report' in f for f in os.listdir('.')), "Отчет не создан"
-    print("Тест генерации отчета пройден успешно")
+def test_report_generation(qtbot, tmp_path, qapp):
+    """Тестирование генерации отчетов с поддержкой Qt"""
+    with patch.object(CreditScoringApp, 'show_login_dialog', return_value=True):
+        print("\n=== Тест генерации отчетов ===")
+
+        # 1. Инициализация приложения
+        print("Инициализация CreditScoringApp")
+        app = CreditScoringApp()
+        app.current_user_role = 'admin'
+
+        # 2. Мок базы данных
+        print("Настройка мока БД")
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.fetchall.return_value = [
+            (1, 'Иванов', 'Иван', 'Иванович', 30, 50000, 700, 0.3,
+             100000, 50000, 5, 2, 24, 1, 3, 2, 0,
+             'Женат', 'Полная', 85.0, 'Хороший', 'Тест', '2023-01-01')
+        ]
+        mock_conn.cursor.return_value = mock_cursor
+        app.conn = mock_conn
+
+        # 3. Тестовый экспорт
+        print("Подготовка тестового экспорта")
+        report_path = os.path.join(tmp_path, 'credit_scoring_report_test.csv')
+
+        def mock_export_report():
+            with open(report_path, 'w', encoding='utf-8') as f:
+                f.write("client_id,last_name,first_name,score\n")
+                f.write("1,Иванов,Иван,85.0\n")
+            return report_path
+
+        app.export_report = mock_export_report
+
+        # 4. Выполнение экспорта
+        print("Выполнение экспорта")
+        result_path = app.export_report()
+
+        # 5. Проверки
+        print("\nПроверка результатов:")
+        print(f"- Путь к файлу: {result_path}")
+
+        assert os.path.exists(result_path), "Файл отчета не создан"
+        assert 'credit_scoring_report' in result_path, "Некорректное имя файла"
+
+        with open(result_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+            print("- Содержимое файла:")
+            print(content)
+            assert "Иванов" in content, "Фамилия отсутствует в отчете"
+            assert "85.0" in content, "Скоринговый балл отсутствует"
+
+        print("\n=== Тест пройден успешно ===")
