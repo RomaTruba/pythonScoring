@@ -131,6 +131,7 @@ def generate_credit_data(num_samples=1000, random_state=42):
 
     return data
 
+
 def generate_sample_data(app):
     try:
         app.data1 = generate_credit_data(num_samples=1500, random_state=77)
@@ -148,6 +149,7 @@ def generate_sample_data(app):
 
     except Exception as e:
         QMessageBox.critical(app, "Ошибка", f"Ошибка генерации данных: {str(e)}")
+
 
 def prepare_data(app):
     try:
