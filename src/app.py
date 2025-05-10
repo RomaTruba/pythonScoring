@@ -262,3 +262,49 @@ class CreditScoringApp(QMainWindow):
             self.scoring_tab.setLayout(QVBoxLayout())
             self.scoring_tab.layout().addWidget(scroll)
 
+        def create_analysis_tab(self):
+            self.analysis_tab = QWidget()
+            self.tabs.addTab(self.analysis_tab, "Анализ")
+
+            layout = QVBoxLayout()
+
+            buttons_layout = QHBoxLayout()
+
+            income_button = QPushButton("Доходы")
+            income_button.clicked.connect(lambda: plot_analysis(self, 'income'))
+            buttons_layout.addWidget(income_button)
+
+            age_button = QPushButton("Возраст")
+            age_button.clicked.connect(lambda: plot_analysis(self, 'age'))
+            buttons_layout.addWidget(age_button)
+
+            correlation_button = QPushButton("Корреляция")
+            correlation_button.clicked.connect(lambda: plot_analysis(self, 'correlation'))
+            buttons_layout.addWidget(correlation_button)
+
+            training_button = QPushButton("Обучение")
+            training_button.clicked.connect(lambda: plot_analysis(self, 'training'))
+            buttons_layout.addWidget(training_button)
+
+            loan_term_button = QPushButton("Сроки кредитов")
+            loan_term_button.clicked.connect(lambda: plot_analysis(self, 'loan_term'))
+            buttons_layout.addWidget(loan_term_button)
+
+            roc_button = QPushButton("ROC-AUC")
+            roc_button.clicked.connect(lambda: plot_analysis(self, 'roc_auc'))
+            buttons_layout.addWidget(roc_button)
+
+            credit_stats_button = QPushButton("Статистика кредитов")
+            credit_stats_button.clicked.connect(lambda: plot_analysis(self, 'credit_stats'))
+            buttons_layout.addWidget(credit_stats_button)
+
+            credit_rating_button = QPushButton("Рейтинг НБКИ")
+            credit_rating_button.clicked.connect(lambda: plot_analysis(self, 'credit_rating'))
+            buttons_layout.addWidget(credit_rating_button)
+
+            layout.addLayout(buttons_layout)
+
+            layout.addWidget(self.canvas)
+
+            self.analysis_tab.setLayout(layout)
+
