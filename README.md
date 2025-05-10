@@ -15,3 +15,6 @@ test_model_training.py: Тесты для обучения моделей.
 test_prediction.py: Тесты для точности предсказаний.
 test_report.py: Тесты для экспорта отчетов.
 requirements.txt
+Авторизация
+Админ: логин admin, пароль admin123
+Пользователь: логин user, пароль user123
