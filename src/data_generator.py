@@ -31,7 +31,7 @@ class DataProcessor:
 
     def load_bank_data(self):
         try:
-            data = pd.read_csv('Bank.csv')
+            data = pd.read_csv('../tests/bank.csv')
             print("Столбцы в Bank.csv:", data.columns.tolist())
             data = self._preprocess_data(data)
             self.data1, self.data2 = train_test_split(data, train_size=0.5, random_state=42)
