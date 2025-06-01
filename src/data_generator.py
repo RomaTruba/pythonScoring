@@ -97,6 +97,19 @@ class DataProcessor:
         np.random.seed(42)
         num_samples = len(data)
 
+        # age (ограничение 21-60 лет, акцент на 25-45)
+        age_groups = [(21, 25, 0.15), (25, 45, 0.7), (45, 60, 0.15)]
+        age_samples = []
+        for min_age, max_age, prob in age_groups:
+            count = int(num_samples * prob)
+            age_samples.append(np.random.uniform(min_age, max_age, size=count))
+        remaining = num_samples - sum(len(arr) for arr in age_samples)
+        if remaining > 0:
+            age_samples.append(np.random.uniform(25, 45, size=remaining))
+        age = np.concatenate(age_samples)
+        np.random.shuffle(age)
+        data['age'] = np.clip(age[:num_samples], 21, 60).astype(int)
+
         # income
         income_groups = [(20000, 150000, 0.8), (150000, 300000, 0.15), (300000, 500000, 0.05)]
         income_samples = []
@@ -110,7 +123,7 @@ class DataProcessor:
         np.random.shuffle(income)
         data['income'] = income[:num_samples]
 
-        # credit_rating
+        # credit_rating (оригинальные диапазоны)
         rating_groups = [(500, 700, 0.6), (700, 850, 0.25), (300, 500, 0.1), (850, 999, 0.05)]
         rating_samples = []
         for min_rt, max_rt, prob in rating_groups:
@@ -143,11 +156,10 @@ class DataProcessor:
         # num_children
         data['num_children'] = np.random.choice([0, 1, 2, 3], size=num_samples, p=[0.4, 0.3, 0.2, 0.1])
 
-        # requested_loans
-        data['requested_loans'] = np.random.poisson(lam=2, size=num_samples)
-
-        # issued_loans
-        data['issued_loans'] = np.random.binomial(data['requested_loans'], 0.7)
+        # Генерация кредитной статистики (оригинальная версия)
+        data['requested_loans'] = np.random.poisson(lam=3, size=num_samples)
+        data['issued_loans'] = np.random.binomial(data['requested_loans'], 0.5)  # Original random issuance
+        data['overdue_loans'] = data['overdue_loans']  # Remains from default conversion
 
         # Вычисление risk_score
         marital_impact = {
@@ -158,7 +170,7 @@ class DataProcessor:
         }
         employment_impact = {
             'Полная занятость': -0.15,
-            'Chастичная занятость': 0.05,
+            'Частичная занятость': 0.05,
             'Самозанятый': 0.1,
             'Безработный': 0.2
         }
