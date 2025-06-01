@@ -14,7 +14,7 @@ class MLModel:
 
     def train_models(self, app):
         try:
-            # Проверка наличия необходимых атрибутов
+
             required_attrs = ['X1_train_scaled', 'X2_train_scaled', 'y1_train', 'y2_train', 'y1_train_cat', 'y2_train_cat']
             missing_attrs = [attr for attr in required_attrs if not hasattr(app, attr)]
             if missing_attrs:

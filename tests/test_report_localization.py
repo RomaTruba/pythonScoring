@@ -16,7 +16,7 @@ def qapp():
     app.quit()
 
 def test_report_localization(tmp_path, qapp):
-    """Тестирование локализации: поддержка кириллических символов в отчете с проверкой данных"""
+
     with patch.object(CreditScoringApp, 'show_login_dialog', return_value=True):
         print("\n=== Тестирование локализации: кириллические символы в отчете ===")
         app = CreditScoringApp()

@@ -16,7 +16,7 @@ def qapp():
     app.quit()
 
 def test_report_generation(tmp_path, qapp):
-    """Тестирование генерации отчетов с поддержкой Qt"""
+
     with patch.object(CreditScoringApp, 'show_login_dialog', return_value=True):
         print("\n=== Тест генерации отчетов ===")
 

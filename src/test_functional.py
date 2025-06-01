@@ -21,7 +21,7 @@ def data_processor():
 
 
 def test_load_bank_data(data_processor):
-    # Подготовка тестового CSV
+
     test_data = pd.DataFrame({
         'age': np.random.normal(35, 5, 100).clip(21, 60).astype(int),
         'credit_rating': np.random.uniform(300, 999, 100).astype(int),
@@ -36,7 +36,7 @@ def test_load_bank_data(data_processor):
     assert data_processor.data2 is not None
     assert (21 <= data_processor.data1['age'].min() <= data_processor.data1['age'].max() <= 60)
     assert (0 <= data_processor.data1['credit_rating'].min() <= data_processor.data1['credit_rating'].max() <= 999)
-    # Проверка кредитной статистики
+
     good = data_processor.data1[data_processor.data1['risk_score'] < 0.3]
     bad = data_processor.data1[data_processor.data1['risk_score'] >= 0.7]
     assert good['issued_loans'].mean() > bad['issued_loans'].mean()
@@ -61,11 +61,11 @@ def test_calculate_score(app):
     app.client_employment_type.setCurrentText('Полная занятость')
     app.client_loan_term.setCurrentText('24')
 
-    app.load_bank_data()  # Загружаем данные для масштабирования
-    app.train_models()  # Обучаем модели
+    app.load_bank_data()
+    app.train_models()
     app.calculate_score()
 
-    # Проверка результата
+
     result_text = app.score_result.text()
     assert "Рекомендация" in app.score_comment.toPlainText()
     assert "Хороший" in app.score_comment.toPlainText() or "Средний" in app.score_comment.toPlainText()

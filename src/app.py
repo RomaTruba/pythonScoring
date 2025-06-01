@@ -47,7 +47,7 @@ class CreditScoringApp(QMainWindow):
         self.create_model_tab()
         self.create_scoring_tab()
         self.create_analysis_tab()
-        self.create_admin_tab()  # Админ вкладка всегда создается
+        self.create_admin_tab()
 
         self.load_bank_data()
 

@@ -43,24 +43,23 @@ class DataProcessor:
             return False
 
     def _preprocess_data(self, data):
-        """Выполняет все необходимые преобразования данных"""
-        # Переименование столбцов
+
         data = data.rename(columns={
             'job': 'employment_type',
             'marital': 'marital_status',
             'balance': 'savings',
         })
 
-        # Удаление ненужных столбцов
+
         columns_to_drop = ['education', 'housing', 'contact', 'day', 'month',
                            'duration', 'campaign', 'pdays', 'previous', 'poutcome', 'y']
         data = data.drop(columns=[col for col in columns_to_drop if col in data.columns])
 
-        # Обработка пропусков
+
         data['marital_status'] = data['marital_status'].fillna('Холост/Не замужем')
         data['employment_type'] = data['employment_type'].fillna('Безработный')
 
-        # Маппинг значений для employment_type
+
         employment_mapping = {
             'unemployed': 'Безработный',
             'services': 'Частичная занятость',
@@ -77,7 +76,7 @@ class DataProcessor:
         }
         data['employment_type'] = data['employment_type'].map(employment_mapping)
 
-        # Маппинг значений для marital_status
+
         marital_mapping = {
             'married': 'Женат/Замужем',
             'single': 'Холост/Не замужем',
@@ -86,18 +85,18 @@ class DataProcessor:
         }
         data['marital_status'] = data['marital_status'].map(marital_mapping)
 
-        # One-hot кодирование категориальных переменных
+
         data = pd.get_dummies(data, columns=['marital_status', 'employment_type'], prefix=['marital_status', 'employment_type'])
 
-        # Обработка default для overdue_loans
+
         data['overdue_loans'] = data['default'].apply(lambda x: 1 if x == 'yes' else 0)
         data = data.drop(columns=['default'])
 
-        # Генерация недостающих колонок
+
         np.random.seed(42)
         num_samples = len(data)
 
-        # age (ограничение 21-60 лет, акцент на 25-45)
+
         age_groups = [(21, 25, 0.15), (25, 45, 0.7), (45, 60, 0.15)]
         age_samples = []
         for min_age, max_age, prob in age_groups:
@@ -110,7 +109,7 @@ class DataProcessor:
         np.random.shuffle(age)
         data['age'] = np.clip(age[:num_samples], 21, 60).astype(int)
 
-        # income
+
         income_groups = [(20000, 150000, 0.8), (150000, 300000, 0.15), (300000, 500000, 0.05)]
         income_samples = []
         for min_inc, max_inc, prob in income_groups:
@@ -123,7 +122,7 @@ class DataProcessor:
         np.random.shuffle(income)
         data['income'] = income[:num_samples]
 
-        # credit_rating (оригинальные диапазоны)
+
         rating_groups = [(500, 700, 0.6), (700, 850, 0.25), (300, 500, 0.1), (850, 999, 0.05)]
         rating_samples = []
         for min_rt, max_rt, prob in rating_groups:
@@ -136,32 +135,32 @@ class DataProcessor:
         np.random.shuffle(credit_rating)
         data['credit_rating'] = np.clip(credit_rating[:num_samples], 0, 999)
 
-        # debt_to_income
+
         data['debt_to_income'] = np.random.uniform(0.1, 0.8, size=num_samples)
 
-        # loan_amount
+
         data['loan_amount'] = data['loan'].apply(
             lambda x: np.random.uniform(10000, 500000) if x == 'yes' else np.random.uniform(10000, 200000))
         data = data.drop(columns=['loan'])
 
-        # employment_years
+
         data['employment_years'] = np.random.randint(0, 40, size=num_samples)
 
-        # num_credit_cards
+
         data['num_credit_cards'] = np.random.randint(0, 5, size=num_samples)
 
-        # loan_term
+
         data['loan_term'] = np.random.choice([6, 12, 24, 36, 60], size=num_samples, p=[0.1, 0.3, 0.3, 0.2, 0.1])
 
-        # num_children
+
         data['num_children'] = np.random.choice([0, 1, 2, 3], size=num_samples, p=[0.4, 0.3, 0.2, 0.1])
 
-        # Генерация кредитной статистики (оригинальная версия)
-        data['requested_loans'] = np.random.poisson(lam=3, size=num_samples)
-        data['issued_loans'] = np.random.binomial(data['requested_loans'], 0.5)  # Original random issuance
-        data['overdue_loans'] = data['overdue_loans']  # Remains from default conversion
 
-        # Вычисление risk_score
+        data['requested_loans'] = np.random.poisson(lam=3, size=num_samples)
+        data['issued_loans'] = np.random.binomial(data['requested_loans'], 0.5)
+        data['overdue_loans'] = data['overdue_loans']
+
+
         marital_impact = {
             'Женат/Замужем': -0.1,
             'Холост/Не замужем': 0,
