@@ -63,7 +63,7 @@ class MLModel:
                 return
 
             self.ensemble_model = lambda X: self.ensemble_predict(self.models['model1'], self.models['model2'], X, weights=[0.6, 0.4])
-            app.train_status.append("Ансамблевая модель создана успешно!\n")
+            app.train_status.append("Ансамблевая обучена успешно!\n")
         except Exception as e:
             app.train_status.append(f"Ошибка обучения моделей: {str(e)}")
             QMessageBox.critical(app, "Ошибка", f"Ошибка обучения моделей: {str(e)}")
