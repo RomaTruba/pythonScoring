@@ -1,10 +1,13 @@
+# tests/test_report_generation.py
 import pytest
 import os
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from unittest.mock import patch, MagicMock
 from PyQt5.QtWidgets import QApplication
 from src.app import CreditScoringApp
-
-
 
 @pytest.fixture(scope="session")
 def qapp():
@@ -12,17 +15,14 @@ def qapp():
     yield app
     app.quit()
 
-
-def test_report_generation(qtbot, tmp_path, qapp):
+def test_report_generation(tmp_path, qapp):
     """Тестирование генерации отчетов с поддержкой Qt"""
     with patch.object(CreditScoringApp, 'show_login_dialog', return_value=True):
         print("\n=== Тест генерации отчетов ===")
 
-
         print("Инициализация CreditScoringApp")
         app = CreditScoringApp()
         app.current_user_role = 'admin'
-
 
         print("Настройка мока БД")
         mock_conn = MagicMock()
@@ -35,7 +35,6 @@ def test_report_generation(qtbot, tmp_path, qapp):
         mock_conn.cursor.return_value = mock_cursor
         app.conn = mock_conn
 
-
         print("Подготовка тестового экспорта")
         report_path = os.path.join(tmp_path, 'credit_scoring_report_test.csv')
 
@@ -47,10 +46,8 @@ def test_report_generation(qtbot, tmp_path, qapp):
 
         app.export_report = mock_export_report
 
-
         print("Выполнение экспорта")
         result_path = app.export_report()
-
 
         print("\nПроверка результатов:")
         print(f"- Путь к файлу: {result_path}")

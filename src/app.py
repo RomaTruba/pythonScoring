@@ -23,21 +23,7 @@ class CreditScoringApp(QMainWindow):
         self.models = {}
         self.scalers = {}
         self.current_client_id = None
-        self.current_user_role = None
-        self.X1_train = None
-        self.X1_train_scaled = None
-        self.X1_test_scaled = None
-        self.y1_train = None
-        self.y1_test = None
-        self.y1_train_cat = None
-        self.y1_test_cat = None
-        self.X2_train = None
-        self.X2_train_scaled = None
-        self.X2_test_scaled = None
-        self.y2_train = None
-        self.y2_test = None
-        self.y2_train_cat = None
-        self.y2_test_cat = None
+        self.current_user_role = 'admin'  # Только админ
 
         self.db_manager = DatabaseManager()
         self.data_processor = DataProcessor()
@@ -61,8 +47,7 @@ class CreditScoringApp(QMainWindow):
         self.create_model_tab()
         self.create_scoring_tab()
         self.create_analysis_tab()
-        if self.current_user_role == 'admin':
-            self.create_admin_tab()
+        self.create_admin_tab()  # Админ вкладка всегда создается
 
         self.load_bank_data()
 
@@ -72,13 +57,9 @@ class CreditScoringApp(QMainWindow):
             login = dialog.login_input.text()
             password = dialog.password_input.text()
             if login == 'admin' and password == 'admin123':
-                self.current_user_role = 'admin'
-                return True
-            elif login == 'user' and password == 'user123':
-                self.current_user_role = 'user'
                 return True
             else:
-                QMessageBox.critical(self, "Ошибка", "Неверный логин или пароль")
+                QMessageBox.critical(self, "Ошибка", "Неверный логин или пароль. Доступ разрешен только администратору.")
                 return False
         return False
 
@@ -101,14 +82,14 @@ class CreditScoringApp(QMainWindow):
             self.y1_train = self.data_processor.y1_train
             self.y1_test = self.data_processor.y1_test
             self.y1_train_cat = self.data_processor.y1_train_cat
-            self.y1_test_cat = self.data_processor.y1_test_cat  # Добавлено
+            self.y1_test_cat = self.data_processor.y1_test_cat
             self.X2_train = self.data_processor.X2_train
             self.X2_train_scaled = self.data_processor.X2_train_scaled
             self.X2_test_scaled = self.data_processor.X2_test_scaled
             self.y2_train = self.data_processor.y2_train
             self.y2_test = self.data_processor.y2_test
             self.y2_train_cat = self.data_processor.y2_train_cat
-            self.y2_test_cat = self.data_processor.y2_test_cat  # Добавлено
+            self.y2_test_cat = self.data_processor.y2_test_cat
             self.train_models()
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Ошибка загрузки данных: {str(e)}")
@@ -173,15 +154,13 @@ class CreditScoringApp(QMainWindow):
     def create_menu(self):
         menu_bar = self.menuBar()
         file_menu = menu_bar.addMenu("Файл")
-        if self.current_user_role == 'admin':
-            export_action = file_menu.addAction("Экспорт отчета")
-            export_action.triggered.connect(lambda: self.db_manager.export_report(self))
+        export_action = file_menu.addAction("Экспорт отчета")
+        export_action.triggered.connect(lambda: self.db_manager.export_report(self))
         exit_action = file_menu.addAction("Выход")
         exit_action.triggered.connect(self.close)
-        if self.current_user_role == 'admin':
-            admin_menu = menu_bar.addMenu("Администрирование")
-            clear_db_action = admin_menu.addAction("Очистить базу данных")
-            clear_db_action.triggered.connect(lambda: self.db_manager.clear_database(self))
+        admin_menu = menu_bar.addMenu("Администрирование")
+        clear_db_action = admin_menu.addAction("Очистить базу данных")
+        clear_db_action.triggered.connect(lambda: self.db_manager.clear_database(self))
 
     def create_data_tab(self):
         self.data_tab = QWidget()

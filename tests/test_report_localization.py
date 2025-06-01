@@ -1,9 +1,13 @@
+# tests/test_report_localization.py
 import pytest
 import os
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from unittest.mock import patch, MagicMock
 from PyQt5.QtWidgets import QApplication
 from src.app import CreditScoringApp
-
 
 @pytest.fixture(scope="session")
 def qapp():
@@ -11,14 +15,12 @@ def qapp():
     yield app
     app.quit()
 
-
-def test_report_localization(qtbot, tmp_path, qapp):
+def test_report_localization(tmp_path, qapp):
     """Тестирование локализации: поддержка кириллических символов в отчете с проверкой данных"""
     with patch.object(CreditScoringApp, 'show_login_dialog', return_value=True):
         print("\n=== Тестирование локализации: кириллические символы в отчете ===")
         app = CreditScoringApp()
         app.current_user_role = 'admin'
-
 
         print("Настройка мока БД с кириллическими данными")
         mock_conn = MagicMock()
@@ -32,12 +34,10 @@ def test_report_localization(qtbot, tmp_path, qapp):
         mock_conn.cursor.return_value = mock_cursor
         app.conn = mock_conn
 
-
         if not mock_data:
             raise ValueError("Данные из базы данных пусты")
         if not all(isinstance(row[1], str) and isinstance(row[2], str) for row in mock_data):
             raise ValueError("Фамилия или имя не являются строками")
-
 
         print("Создание отчета с кириллическими данными")
         report_path = os.path.join(tmp_path, 'credit_scoring_report_test.csv')
@@ -53,14 +53,12 @@ def test_report_localization(qtbot, tmp_path, qapp):
 
         app.export_report = mock_export_report
 
-
         print("Выполнение экспорта")
         try:
             result_path = app.export_report()
         except ValueError as e:
             print(f"Ошибка экспорта: {str(e)}")
             raise
-
 
         print("\nПроверка результатов:")
         assert os.path.exists(result_path), "Файл отчета не создан"
