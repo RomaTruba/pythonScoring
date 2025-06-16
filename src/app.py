@@ -407,13 +407,13 @@ class CreditScoringApp(QMainWindow):
             ]
             client_score = sum(calc(value) * weight for _, value, weight, calc in factors)
 
-            # Отладочные строки
+
             print("Входные данные:", df)
             print("Нормализованные данные:", X_scaled)
             print("Предсказание:", ensemble_pred)
             print("Рейтинг:", client_score)
 
-            # Обновление интерфейса
+
             client_id = self.db_manager.save_client(self, client_data, client_score, class_names[pred_class], comment)
             if not client_id:
                 return

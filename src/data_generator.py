@@ -42,23 +42,23 @@ class DataProcessor:
             return False
 
     def _preprocess_data(self, data):
-        # Переименование столбцов
+
         data = data.rename(columns={
             'job': 'employment_type',
             'marital': 'marital_status',
             'balance': 'savings',
         })
 
-        # Удаление ненужных столбцов
+
         columns_to_drop = ['education', 'housing', 'contact', 'day', 'month',
                            'duration', 'campaign', 'pdays', 'previous', 'poutcome', 'y']
         data = data.drop(columns=[col for col in columns_to_drop if col in data.columns])
 
-        # Заполнение пропущенных значений
+
         data['marital_status'] = data['marital_status'].fillna('Холост/Не замужем')
         data['employment_type'] = data['employment_type'].fillna('Безработный')
 
-        # Маппинг категорий
+
         employment_mapping = {
             'unemployed': 'Безработный',
             'services': 'Частичная занятость',
@@ -83,19 +83,19 @@ class DataProcessor:
         }
         data['marital_status'] = data['marital_status'].map(marital_mapping)
 
-        # One-hot кодирование
+
         data = pd.get_dummies(data, columns=['marital_status', 'employment_type'],
                               prefix=['marital_status', 'employment_type'])
 
-        # Обработка просроченных кредитов
+
         data['overdue_loans'] = data['default'].apply(lambda x: 1 if x == 'yes' else 0)
         data = data.drop(columns=['default'])
 
-        # Генерация дополнительных данных
+
         np.random.seed(42)
         num_samples = len(data)
 
-        # Возраст
+
         age_groups = [(21, 25, 0.15), (25, 45, 0.7), (45, 60, 0.15)]
         age_samples = []
         for min_age, max_age, prob in age_groups:
@@ -108,7 +108,7 @@ class DataProcessor:
         np.random.shuffle(age)
         data['age'] = np.clip(age[:num_samples], 21, 60).astype(int)
 
-        # Доход
+
         income_groups = [(20000, 150000, 0.8), (150000, 300000, 0.15), (300000, 500000, 0.05)]
         income_samples = []
         for min_inc, max_inc, prob in income_groups:
@@ -121,7 +121,7 @@ class DataProcessor:
         np.random.shuffle(income)
         data['income'] = income[:num_samples]
 
-        # Рейтинг
+
         rating_groups = [(500, 700, 0.6), (700, 850, 0.25), (300, 500, 0.1), (850, 999, 0.05)]
         rating_samples = []
         for min_rt, max_rt, prob in rating_groups:
@@ -134,32 +134,32 @@ class DataProcessor:
         np.random.shuffle(credit_rating)
         data['credit_rating'] = np.clip(credit_rating[:num_samples], 0, 999)
 
-        # Долг/Доход
+
         data['debt_to_income'] = np.random.uniform(0.1, 0.8, size=num_samples)
 
-        # Сумма кредита
+
         data['loan_amount'] = data['loan'].apply(
             lambda x: np.random.uniform(10000, 500000) if x == 'yes' else np.random.uniform(10000, 200000))
         data = data.drop(columns=['loan'])
 
-        # Стаж работы
+
         data['employment_years'] = np.random.randint(0, 40, size=num_samples)
 
-        # Количество кредитных карт
+
         data['num_credit_cards'] = np.random.randint(0, 5, size=num_samples)
 
-        # Срок кредита
+
         data['loan_term'] = np.random.choice([6, 12, 24, 36, 60], size=num_samples, p=[0.1, 0.3, 0.3, 0.2, 0.1])
 
-        # Количество детей
+
         data['num_children'] = np.random.choice([0, 1, 2, 3], size=num_samples, p=[0.4, 0.3, 0.2, 0.1])
 
-        # Запрошенные и выданные кредиты
+
         data['requested_loans'] = np.random.poisson(lam=3, size=num_samples)
         data['issued_loans'] = np.random.binomial(data['requested_loans'], 0.5)
         data['overdue_loans'] = data['overdue_loans']
 
-        # Влияние семейного положения и типа занятости
+
         marital_impact = {
             'Женат/Замужем': -0.1,
             'Холост/Не замужем': 0,
@@ -174,12 +174,12 @@ class DataProcessor:
         }
 
         risk_score = (
-                0.10 * (1 - (data['age'] / 60)) +  # Уменьшен вес возраста
-                0.20 * (1 - (data['income'] / 500000)) +  # Увеличен вес дохода
-                0.25 * (1 - (data['credit_rating'] / 999)) +  # Увеличен вес рейтинга
-                0.15 * data['debt_to_income'] +  # Уменьшен вес долга
+                0.10 * (1 - (data['age'] / 60)) +
+                0.20 * (1 - (data['income'] / 500000)) +
+                0.25 * (1 - (data['credit_rating'] / 999)) +
+                0.15 * data['debt_to_income'] +
                 0.10 * (data['loan_amount'] / 500000) -
-                0.15 * (data['savings'] / 200000) -  # Увеличен вес сбережений
+                0.15 * (data['savings'] / 200000) -
                 0.05 * (data['employment_years'] / 40) -
                 0.05 * (data['num_credit_cards'] / 5) +
                 0.05 * (data['loan_term'] / 60) -
@@ -196,16 +196,16 @@ class DataProcessor:
             if col_name in data.columns:
                 risk_score += employment_impact[emp_type] * data[col_name]
 
-        # Нормализация risk_score
+
         risk_score = (risk_score - risk_score.min()) / (risk_score.max() - risk_score.min())
         data['risk_score'] = risk_score
 
-        # Назначение классов с новыми порогами
-        data['credit_class'] = np.where(risk_score < 0.30, 'Хороший',  # Увеличен порог с 0.25 до 0.35
-                                        np.where(risk_score < 0.55, 'Средний',
-                                                 'Плохой'))  # Уменьшен порог с 0.75 до 0.65
 
-        # Проверяем распределение
+        data['credit_class'] = np.where(risk_score < 0.30, 'Хороший',
+                                        np.where(risk_score < 0.55, 'Средний',
+                                                 'Плохой'))
+
+
         print("Распределение credit_class:", data['credit_class'].value_counts().to_dict())
 
         return data
