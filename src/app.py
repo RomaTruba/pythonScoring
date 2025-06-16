@@ -23,7 +23,7 @@ class CreditScoringApp(QMainWindow):
         self.models = {}
         self.scalers = {}
         self.current_client_id = None
-        self.current_user_role = 'admin'  # Только админ
+        self.current_user_role = 'admin'
 
         self.db_manager = DatabaseManager()
         self.data_processor = DataProcessor()
