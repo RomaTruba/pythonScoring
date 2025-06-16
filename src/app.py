@@ -395,7 +395,8 @@ class CreditScoringApp(QMainWindow):
                 comment = "Высокий риск. Кредит не рекомендуется к выдаче."
             factors = [
                 ('age', client_data['age'], 0.15,
-                 lambda x: min(max((x - 25) / (45 - 25) * 100, 0), 100) if x <= 45 else max(100 - (x - 45) / (60 - 45) * 50, 50)),
+                 lambda x: min(max((x - 25) / (45 - 25) * 100, 0), 100) if x <= 45 else max(
+                     100 - (x - 45) / (60 - 45) * 50, 50)),
                 ('income', client_data['income'], 0.15, lambda x: min(x / 300000 * 100, 100)),
                 ('credit_rating', client_data['credit_rating'], 0.25, lambda x: x / 999 * 100),
                 ('debt_to_income', client_data['debt_to_income'], 0.15, lambda x: 100 - (x * 125)),
@@ -405,6 +406,14 @@ class CreditScoringApp(QMainWindow):
                 ('overdue_loans', client_data['overdue_loans'], 0.05, lambda x: 100 - (x * 25))
             ]
             client_score = sum(calc(value) * weight for _, value, weight, calc in factors)
+
+            # Отладочные строки
+            print("Входные данные:", df)
+            print("Нормализованные данные:", X_scaled)
+            print("Предсказание:", ensemble_pred)
+            print("Рейтинг:", client_score)
+
+            # Обновление интерфейса
             client_id = self.db_manager.save_client(self, client_data, client_score, class_names[pred_class], comment)
             if not client_id:
                 return
@@ -427,7 +436,8 @@ class CreditScoringApp(QMainWindow):
             self.current_client_id = client_id
             self.right_panel.layout().removeWidget(self.analysis_group)
             self.analysis_group.deleteLater()
-            self.analysis_group = self.scorer.display_scoring_breakdown(client_data, client_score, class_names[pred_class])
+            self.analysis_group = self.scorer.display_scoring_breakdown(client_data, client_score,
+                                                                        class_names[pred_class])
             self.right_panel.layout().addWidget(self.analysis_group)
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Ошибка расчета: {str(e)}")
