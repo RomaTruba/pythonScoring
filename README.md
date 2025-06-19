@@ -1,6 +1,5 @@
 pip install numpy>=1.21.0 pandas>=1.3.0 matplotlib>=3.4.0 seaborn>=0.11.0 scikit-learn>=0.24.0 tensorflow>=2.6.0 PyQt5>=5.15.0
 pip install -r requirements.txt
-Для запуска тестов выполните: python -m unittest discover tests
 __init__.py: пустой файл, обозначающий, что папка src является Python-пакетом.
 main.py: Точка входа в приложение. Инициализирует приложение PyQt5 и отображает главное окно.
 app.py: Основной класс CreditScoringApp, управляющий интерфейсом и координирующий работу модулей
