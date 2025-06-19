@@ -70,7 +70,7 @@ class MLModel:
 
     def ensemble_predict(self, model1, model2, X, weights=None):
         if weights is None:
-            weights = [0.7, 0.3]
+            weights = [0.5, 0.5]
         preds = [model1.predict(X), model2.predict(X)]
         weighted_preds = np.zeros_like(preds[0])
         for pred, weight in zip(preds, weights):

@@ -28,12 +28,10 @@ class DataProcessor:
         self.scaler1 = StandardScaler()
         self.scaler2 = StandardScaler()
 
-
         self.preserved_columns = ['age', 'savings']
 
     def load_bank_data(self):
         try:
-
             data = pd.read_csv('../src/bank.csv')
             data = self._preprocess_data(data)
 
@@ -51,26 +49,30 @@ class DataProcessor:
                 data = data.rename(columns={'balance': 'savings'})
 
 
-            columns_to_drop = ['education', 'housing', 'contact', 'day', 'month',
-                               'duration', 'campaign', 'pdays', 'previous', 'poutcome', 'y']
-            data = data.drop(columns=[col for col in columns_to_drop if col in data.columns])
+            if 'savings' in data.columns:
 
+                scale_factor = 15
+                data['savings'] = data['savings'] * scale_factor
+
+                data['savings'] = np.clip(data['savings'], 0, 500000)
+
+            columns_to_drop = ['education', 'housing', 'contact', 'day', 'month',
+                              'duration', 'campaign', 'pdays', 'previous', 'poutcome', 'y']
+            data = data.drop(columns=[col for col in columns_to_drop if col in data.columns])
 
             for col in data.columns:
                 if col.startswith('marital_status_') or col.startswith('employment_type_'):
                     data[col] = data[col].astype(int)
 
-
             if 'default' in data.columns:
                 data['overdue_loans'] = data['default'].apply(lambda x: 1 if x == 'yes' else 0)
                 data = data.drop(columns=['default'])
-
 
             np.random.seed(42)
             num_samples = len(data)
 
             if 'income' not in self.preserved_columns:
-                income_groups = [(20000, 150000, 0.8), (150000, 300000, 0.15), (300000, 500000, 0.05)]
+                income_groups = [(20000, 100000, 0.65), (100000, 300000, 0.25), (300000, 500000, 0.05)]
                 income_samples = []
                 for min_inc, max_inc, prob in income_groups:
                     count = int(num_samples * prob)
@@ -82,15 +84,18 @@ class DataProcessor:
                 np.random.shuffle(income)
                 data['income'] = income[:num_samples]
 
+
             if 'credit_rating' not in self.preserved_columns:
-                rating_groups = [(0, 300, 0.05), (300, 500, 0.2), (500, 700, 0.5), (700, 850, 0.2), (850, 999, 0.05)]
                 rating_samples = []
-                for min_rt, max_rt, prob in rating_groups:
-                    count = int(num_samples * prob)
-                    rating_samples.append(np.random.uniform(min_rt, max_rt, size=count))
-                remaining = num_samples - sum(len(arr) for arr in rating_samples)
-                if remaining > 0:
-                    rating_samples.append(np.random.uniform(500, 700, size=remaining))
+
+                count_high = int(num_samples * 0.3)
+                rating_samples.append(np.random.uniform(700, 999, size=count_high))
+
+                count_mid = int(num_samples * 0.5)
+                rating_samples.append(np.random.uniform(450, 700, size=count_mid))
+
+                count_low = num_samples - count_high - count_mid
+                rating_samples.append(np.random.uniform(0, 450, size=count_low))
                 credit_rating = np.concatenate(rating_samples)
                 np.random.shuffle(credit_rating)
                 data['credit_rating'] = np.clip(credit_rating[:num_samples], 0, 999)
@@ -124,29 +129,35 @@ class DataProcessor:
             else:
                 data['issued_loans'] = np.random.binomial(data['requested_loans'], 0.5)
 
-
             data = pd.get_dummies(data, columns=['marital', 'job'], prefix=['marital_status', 'employment_type'])
 
+            def age_risk_weight(age, age_max=data['age'].max()):
+                if age < 25:
+                    return (25 - age) / (25 - 18)
+                elif age > 60:
+                    return (age - 60) / (age_max - 60)
+                else:
+                    return 0
 
             risk_score = (
-                    0.15 * (1 - (data['age'] / data['age'].max())) +
-                    0.20 * (1 - (data['income'] / 500000)) +
-                    0.25 * (1 - (data['credit_rating'] / 999)) +
-                    0.15 * data['debt_to_income'] +
-                    0.10 * (data['loan_amount'] / 500000) -
-                    0.10 * (data['savings'] / 200000) -
-                    0.10 * (data['employment_years'] / 40) -
-                    0.05 * (data['num_credit_cards'] / 5) +
-                    0.05 * (data['loan_term'] / 60) -
-                    0.03 * (data['num_children'] / 3) +
-                    0.15 * (data['overdue_loans'] / (data['issued_loans'] + 1))
+                0.05 * (1 - (data['age'] / data['age'].max())) +
+                0.20 * (1 - (data['income'] / 500000)) +
+                0.25 * (1 - (data['credit_rating'] / 999)) +
+                0.15 * data['debt_to_income'] +
+                0.10 * (data['loan_amount'] / 500000) -
+                0.10 * (data['savings'] / 200000) -
+                0.10 * (data['employment_years'] / 40) -
+                0.05 * (data['num_credit_cards'] / 5) +
+                0.05 * (data['loan_term'] / 60) -
+                0.03 * (data['num_children'] / 3) +
+                0.15 * (data['overdue_loans'] / (data['issued_loans'] + 1))
             )
 
             for status in ['married', 'single', 'divorced', 'unknown']:
                 col_name = f'marital_status_{status}'
                 if col_name in data.columns:
                     risk_score += (0 if status == 'single' else -0.1 if status == 'married' else 0.05 if status == 'divorced' else 0.02) * data[col_name]
-            for job_type in ['unemployed', 'services', 'management', 'blue-collar', 'unknown']:  # Из исходного job
+            for job_type in ['unemployed', 'services', 'management', 'blue-collar', 'unknown']:
                 col_name = f'employment_type_{job_type}'
                 if col_name in data.columns:
                     risk_score += (-0.15 if job_type == 'management' else 0.05 if job_type == 'services' else 0.1 if job_type == 'blue-collar' else 0.2) * data[col_name]
@@ -171,7 +182,6 @@ class DataProcessor:
             if 'credit_class' not in self.data1.columns or 'credit_class' not in self.data2.columns:
                 QMessageBox.critical(app, "Ошибка", f"Столбец 'credit_class' не найден! Столбцы data1: {self.data1.columns.tolist()}")
                 return False
-
 
             numeric_columns = [col for col in self.data1.columns if col not in ['marital', 'job', 'risk_score', 'credit_class']]
             X1 = self.data1[numeric_columns]
