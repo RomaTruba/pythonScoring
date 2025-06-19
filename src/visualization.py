@@ -23,6 +23,7 @@ class Visualizer:
                 ax.set_title('Распределение доходов клиентов')
                 ax.set_xlabel('Доход (руб)')
                 ax.set_ylabel('Количество')
+                self.canvas.draw()
 
             elif plot_type == 'age':
                 if app.data1 is None or app.data1.empty:
@@ -32,6 +33,7 @@ class Visualizer:
                 ax.set_title('Распределение возраста клиентов')
                 ax.set_xlabel('Возраст')
                 ax.set_ylabel('Количество')
+                self.canvas.draw()
 
             elif plot_type == 'correlation':
                 if app.data1 is None or app.data1.empty:
@@ -43,6 +45,7 @@ class Visualizer:
                 corr_matrix = app.data1[numeric_cols].corr()
                 sns.heatmap(corr_matrix, annot=True, fmt=".2f", cmap='coolwarm', ax=ax)
                 ax.set_title('Корреляционная матрица')
+                self.canvas.draw()
 
             elif plot_type == 'training':
                 if not hasattr(app.ml_model, 'history1') or app.ml_model.history1 is None:
@@ -63,6 +66,7 @@ class Visualizer:
                 ax2.set_ylabel('Потери')
                 ax2.legend()
                 self.figure.tight_layout()
+                self.canvas.draw()
 
             elif plot_type == 'loan_term':
                 if app.data1 is None or app.data1.empty:
@@ -72,6 +76,7 @@ class Visualizer:
                 ax.set_title('Распределение сроков кредита')
                 ax.set_xlabel('Срок кредита (месяцы)')
                 ax.set_ylabel('Количество')
+                self.canvas.draw()
 
             elif plot_type == 'roc_auc':
                 if not app.ml_model.models:
@@ -107,6 +112,7 @@ class Visualizer:
                 ax.set_ylabel('True Positive Rate')
                 ax.set_title('ROC кривые для всех моделей')
                 ax.legend(loc="lower right")
+                self.canvas.draw()
 
             elif plot_type == 'credit_stats':
                 if app.data1 is None or app.data1.empty:
@@ -119,6 +125,7 @@ class Visualizer:
                 ax.set_ylabel('Количество')
                 ax.set_xticklabels(['Хороший', 'Средний', 'Плохой'], rotation=0)
                 ax.legend(['Запрошенные', 'Выданные', 'Просроченные'])
+                self.canvas.draw()
 
             elif plot_type == 'credit_rating':
                 if app.data1 is None or app.data1.empty:
@@ -130,7 +137,7 @@ class Visualizer:
                 ax.set_title('Распределение кредитного рейтинга по классам')
                 ax.set_xlabel('Класс кредита')
                 ax.set_ylabel('Рейтинг НБКИ')
+                self.canvas.draw()
 
-            self.canvas.draw()
         except Exception as e:
             QMessageBox.critical(app, "Ошибка", f"Ошибка построения графика: {str(e)}")
