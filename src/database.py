@@ -43,6 +43,7 @@ class DatabaseManager:
     def save_client(self, app, client_data, score, risk_class, comment):
         try:
             client_id = app.client_id.text() or f"NEW_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            print(f"Сохраняемые данные: score={score}, type={type(score)}")  # Отладка
             self.cursor.execute('''
                 INSERT OR REPLACE INTO clients (
                     client_id, last_name, first_name, middle_name, age, income, credit_rating,
@@ -70,7 +71,7 @@ class DatabaseManager:
                 client_data['overdue_loans'],
                 client_data['marital_status'],
                 client_data['employment_type'],
-                score,
+                float(score) if score is not None else 0.0,  # Обработка None
                 risk_class,
                 comment,
                 datetime.now()
@@ -90,9 +91,24 @@ class DatabaseManager:
                 return
             columns = [desc[0] for desc in self.cursor.description]
             df = pd.DataFrame(data, columns=columns)
+
+            # Приведение типов для числовых столбцов
+            numeric_columns = ['age', 'income', 'credit_rating', 'debt_to_income', 'loan_amount',
+                               'savings', 'employment_years', 'num_credit_cards', 'loan_term',
+                               'num_children', 'requested_loans', 'issued_loans', 'overdue_loans', 'score']
+            for col in numeric_columns:
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+
+            # Маппинг для marital_status и employment_type
+            marital_mapping = {0: "Холост/Не замужем", 1: "Женат/Замужем"}  # Уточните маппинг
+            df['marital_status'] = df['marital_status'].map(marital_mapping).fillna(df['marital_status'])
+
+            employment_mapping = {1: "Полная занятость", 2: "Частичная занятость"}  # Уточните маппинг
+            df['employment_type'] = df['employment_type'].map(employment_mapping).fillna(df['employment_type'])
+
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             filename = f'credit_scoring_report_{timestamp}.csv'
-            df.to_csv(filename, index=False)
+            df.to_csv(filename, index=False, encoding='utf-8-sig', float_format='%.2f')  # Форматирование чисел
             QMessageBox.information(app, "Успех", f"Отчет сохранен как {filename}")
         except Exception as e:
             QMessageBox.critical(app, "Ошибка", f"Ошибка экспорта отчета: {str(e)}")

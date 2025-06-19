@@ -56,7 +56,7 @@ class CreditScoringApp(QMainWindow):
         if dialog.exec_():
             login = dialog.login_input.text()
             password = dialog.password_input.text()
-            if login == 'admin' and password == 'admin123':
+            if login == 'admin' and password == '12345':
                 return True
             else:
                 QMessageBox.critical(self, "Ошибка", "Неверный логин или пароль. Доступ разрешен только администратору.")
@@ -217,7 +217,7 @@ class CreditScoringApp(QMainWindow):
         finance_group = QGroupBox("Финансовые данные")
         finance_layout = QFormLayout()
         self.client_age = QLineEdit()
-        self.client_age.setPlaceholderText("21-60 лет")
+        self.client_age.setPlaceholderText("Возраст")
         finance_layout.addRow("Возраст:", self.client_age)
         self.client_income = QLineEdit()
         self.client_income.setPlaceholderText("Пример: 60000")
@@ -335,55 +335,81 @@ class CreditScoringApp(QMainWindow):
             if not self.ml_model.models:
                 QMessageBox.warning(self, "Предупреждение", "Модели не обучены!")
                 return
+
+
             try:
                 client_data = {
-                    'age': int(self.client_age.text()),
-                    'income': int(self.client_income.text()),
-                    'credit_rating': int(self.client_credit_rating.text()),
-                    'debt_to_income': float(self.client_debt_income.text()),
-                    'loan_amount': float(self.client_loan_amount.text()),
-                    'savings': int(self.client_savings.text()),
-                    'employment_years': int(self.client_employment.text()),
-                    'num_credit_cards': int(self.client_credit_cards.text()),
-                    'loan_term': int(self.client_loan_term.currentText()),
-                    'num_children': int(self.client_num_children.text()),
-                    'requested_loans': int(self.client_requested_loans.text()),
-                    'issued_loans': int(self.client_issued_loans.text()),
-                    'overdue_loans': int(self.client_overdue_loans.text()),
+                    'age': int(self.client_age.text() or 0),
+                    'income': int(self.client_income.text() or 0),
+                    'credit_rating': int(self.client_credit_rating.text() or 0),
+                    'debt_to_income': float(self.client_debt_income.text() or 0),
+                    'loan_amount': float(self.client_loan_amount.text() or 0),
+                    'savings': int(self.client_savings.text() or 0),
+                    'employment_years': int(self.client_employment.text() or 0),
+                    'num_credit_cards': int(self.client_credit_cards.text() or 0),
+                    'loan_term': int(self.client_loan_term.currentText() or 0),
+                    'num_children': int(self.client_num_children.text() or 0),
+                    'requested_loans': int(self.client_requested_loans.text() or 0),
+                    'issued_loans': int(self.client_issued_loans.text() or 0),
+                    'overdue_loans': int(self.client_overdue_loans.text() or 0),
                     'marital_status': self.client_marital.currentText(),
                     'employment_type': self.client_employment_type.currentText()
                 }
-                if not (21 <= client_data['age'] <= 60):
-                    raise ValueError("Возраст должен быть от 21 до 60 лет")
+
+                if not (20 <= client_data['age'] <= 80):
+                    raise ValueError("Возраст должен быть от 20 до 80 лет")
                 if not (0 <= client_data['credit_rating'] <= 999):
                     raise ValueError("Кредитный рейтинг должен быть от 0 до 999")
+                if not (0 <= client_data['debt_to_income'] <= 1):
+                    raise ValueError("Долг/Доход должен быть от 0 до 1")
             except ValueError as e:
                 self.score_result.setText(f"Ошибка: {str(e)}")
                 return
+
+
             input_data = {
-                'age': client_data['age'],
-                'income': client_data['income'],
-                'credit_rating': client_data['credit_rating'],
-                'debt_to_income': client_data['debt_to_income'],
-                'loan_amount': client_data['loan_amount'],
-                'savings': client_data['savings'],
-                'employment_years': client_data['employment_years'],
-                'num_credit_cards': client_data['num_credit_cards'],
-                'loan_term': client_data['loan_term'],
-                'num_children': client_data['num_children'],
-                'requested_loans': client_data['requested_loans'],
-                'issued_loans': client_data['issued_loans'],
-                'overdue_loans': client_data['overdue_loans']
+                'age': [client_data['age']],
+                'income': [client_data['income']],
+                'credit_rating': [client_data['credit_rating']],
+                'debt_to_income': [client_data['debt_to_income']],
+                'loan_amount': [client_data['loan_amount']],
+                'savings': [client_data['savings']],
+                'employment_years': [client_data['employment_years']],
+                'num_credit_cards': [client_data['num_credit_cards']],
+                'loan_term': [client_data['loan_term']],
+                'num_children': [client_data['num_children']],
+                'requested_loans': [client_data['requested_loans']],
+                'issued_loans': [client_data['issued_loans']],
+                'overdue_loans': [client_data['overdue_loans']]
             }
+
             for status in ['Холост/Не замужем', 'Женат/Замужем', 'Разведен/Разведена', 'Вдовец/Вдова']:
-                input_data[f'marital_status_{status}'] = 1 if client_data['marital_status'] == status else 0
+                input_data[f'marital_status_{status}'] = [1 if client_data['marital_status'] == status else 0]
             for emp_type in ['Полная занятость', 'Частичная занятость', 'Самозанятый', 'Безработный']:
-                input_data[f'employment_type_{emp_type}'] = 1 if client_data['employment_type'] == emp_type else 0
-            df = pd.DataFrame([input_data], columns=self.data_processor.X1_train.columns)
+                input_data[f'employment_type_{emp_type}'] = [1 if client_data['employment_type'] == emp_type else 0]
+
+
+            df = pd.DataFrame(input_data)
+
+            missing_cols = [col for col in self.data_processor.X1_train.columns if col not in df.columns]
+            for col in missing_cols:
+                df[col] = 0
+            df = df[self.data_processor.X1_train.columns]
+
+
             X_scaled = self.scalers['scaler1'].transform(df)
+
+
             ensemble_pred = self.ml_model.ensemble_model(X_scaled)[0]
             pred_class = np.argmax(ensemble_pred)
             class_names = ['Хороший', 'Средний', 'Плохой']
+
+
+            total_score = (ensemble_pred[0] * 100 + ensemble_pred[1] * 50) / (
+                        ensemble_pred[0] + ensemble_pred[1] + ensemble_pred[2])
+            loan_term_months = client_data['loan_term']
+
+
             if pred_class == 0:
                 color = "green"
                 comment = "Низкий риск. Кредит может быть одобрен на выгодных условиях."
@@ -393,31 +419,14 @@ class CreditScoringApp(QMainWindow):
             else:
                 color = "red"
                 comment = "Высокий риск. Кредит не рекомендуется к выдаче."
-            factors = [
-                ('age', client_data['age'], 0.15,
-                 lambda x: min(max((x - 25) / (45 - 25) * 100, 0), 100) if x <= 45 else max(
-                     100 - (x - 45) / (60 - 45) * 50, 50)),
-                ('income', client_data['income'], 0.15, lambda x: min(x / 300000 * 100, 100)),
-                ('credit_rating', client_data['credit_rating'], 0.25, lambda x: x / 999 * 100),
-                ('debt_to_income', client_data['debt_to_income'], 0.15, lambda x: 100 - (x * 125)),
-                ('savings', client_data['savings'], 0.1, lambda x: min(x / 150000 * 100, 100)),
-                ('employment_years', client_data['employment_years'], 0.1, lambda x: min(x / 30 * 100, 100)),
-                ('num_children', client_data['num_children'], 0.05, lambda x: 80 + (x * 5)),
-                ('overdue_loans', client_data['overdue_loans'], 0.05, lambda x: 100 - (x * 25))
-            ]
-            client_score = sum(calc(value) * weight for _, value, weight, calc in factors)
 
 
-            print("Входные данные:", df)
-            print("Нормализованные данные:", X_scaled)
-            print("Предсказание:", ensemble_pred)
-            print("Рейтинг:", client_score)
-
-
-            client_id = self.db_manager.save_client(self, client_data, client_score, class_names[pred_class], comment)
+            client_id = self.db_manager.save_client(self, client_data, total_score, class_names[pred_class], comment)
             if not client_id:
                 return
-            resultRacoon = f"""
+
+
+            result_html = f"""
             <div style="color:{color}; font-weight:bold; font-size:14px; margin-bottom:10px;">
                 Рекомендация: {comment}
             </div>
@@ -425,20 +434,29 @@ class CreditScoringApp(QMainWindow):
                 <b>Вероятности:</b><br>
                 - Хороший: {ensemble_pred[0]:.1%}<br>
                 - Средний: {ensemble_pred[1]:.1%}<br>
-                - Плохой: {ensemble_pred[2]:.1%}
+                - Плохой: {ensemble_pred[2]:.1%}<br>
             </div>
             <div style="margin-bottom:10px;">
-                <b>Общий рейтинг клиента:</b> {client_score:.1f}/100<br>
-                <b>Срок кредита:</b> {client_data['loan_term']} месяцев
+                <b>Общий рейтинг клиента:</b> {total_score:.1f}/100<br>
+                <b>Срок кредита:</b> {loan_term_months} месяцев
             </div>
             """
-            self.score_comment.setHtml(resultRacoon)
+            self.score_comment.setHtml(result_html)
             self.current_client_id = client_id
+
+
             self.right_panel.layout().removeWidget(self.analysis_group)
             self.analysis_group.deleteLater()
-            self.analysis_group = self.scorer.display_scoring_breakdown(client_data, client_score,
+            self.analysis_group = self.scorer.display_scoring_breakdown(client_data, total_score,
                                                                         class_names[pred_class])
             self.right_panel.layout().addWidget(self.analysis_group)
+
+
+            print(f"Входные данные: {df}")
+            print(f"Масштабированные данные: {X_scaled}")
+            print(f"Предсказание: {ensemble_pred}")
+            print(f"Рейтинг: {total_score}")
+
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Ошибка расчета: {str(e)}")
             self.score_result.setText("Ошибка расчета")

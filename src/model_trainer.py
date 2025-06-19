@@ -62,7 +62,7 @@ class MLModel:
                 QMessageBox.warning(app, "Предупреждение", "Ни одна модель не была обучена!")
                 return
 
-            self.ensemble_model = lambda X: self.ensemble_predict(self.models['model1'], self.models['model2'], X, weights=[0.6, 0.4])
+            self.ensemble_model = lambda X: self.ensemble_predict(self.models['model1'], self.models['model2'], X, weights=[0.7, 0.3])
             app.train_status.append("Ансамблевая обучена успешно!\n")
         except Exception as e:
             app.train_status.append(f"Ошибка обучения моделей: {str(e)}")
@@ -70,9 +70,11 @@ class MLModel:
 
     def ensemble_predict(self, model1, model2, X, weights=None):
         if weights is None:
-            weights = [0.5, 0.5]
+            weights = [0.7, 0.3]
         preds = [model1.predict(X), model2.predict(X)]
         weighted_preds = np.zeros_like(preds[0])
         for pred, weight in zip(preds, weights):
             weighted_preds += pred * weight
-        return weighted_preds
+
+        exp_preds = np.exp(weighted_preds)
+        return exp_preds / np.sum(exp_preds, axis=1, keepdims=True)
