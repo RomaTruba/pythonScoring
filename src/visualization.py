@@ -5,7 +5,6 @@ from PyQt5.QtWidgets import QMessageBox
 import pandas as pd
 import numpy as np
 
-
 class Visualizer:
     def __init__(self):
         self.figure = plt.figure(figsize=(10, 8))
@@ -48,20 +47,22 @@ class Visualizer:
                 self.canvas.draw()
 
             elif plot_type == 'training':
-                if not hasattr(app.ml_model, 'history1') or app.ml_model.history1 is None:
-                    QMessageBox.warning(app, "Предупреждение", "Нет данных об обучении модели 1")
+                if not hasattr(app.ml_model, 'history') or app.ml_model.history is None:
+                    QMessageBox.warning(app, "Предупреждение", "Нет данных об обучении ансамблевой модели")
                     return
                 ax1 = self.figure.add_subplot(121)
                 ax2 = self.figure.add_subplot(122)
-                ax1.plot(app.ml_model.history1.history['accuracy'], label='Точность (обучение)')
-                ax1.plot(app.ml_model.history1.history['val_accuracy'], label='Точность (валидация)')
-                ax1.set_title('График точности модели')
+                ax1.plot(app.ml_model.history.history['accuracy'], label='Точность (обучение)')
+                if 'val_accuracy' in app.ml_model.history.history:
+                    ax1.plot(app.ml_model.history.history['val_accuracy'], label='Точность (валидация)')
+                ax1.set_title('График точности ансамблевой модели')
                 ax1.set_xlabel('Эпоха')
                 ax1.set_ylabel('Точность')
                 ax1.legend()
-                ax2.plot(app.ml_model.history1.history['loss'], label='Потери (обучение)')
-                ax2.plot(app.ml_model.history1.history['val_loss'], label='Потери (валидация)')
-                ax2.set_title('График потерь модели')
+                ax2.plot(app.ml_model.history.history['loss'], label='Потери (обучение)')
+                if 'val_loss' in app.ml_model.history.history:
+                    ax2.plot(app.ml_model.history.history['val_loss'], label='Потери (валидация)')
+                ax2.set_title('График потерь ансамблевой модели')
                 ax2.set_xlabel('Эпоха')
                 ax2.set_ylabel('Потери')
                 ax2.legend()
@@ -78,39 +79,43 @@ class Visualizer:
                 ax.set_ylabel('Количество')
                 self.canvas.draw()
 
+
+
             elif plot_type == 'roc_auc':
-                if not app.ml_model.models:
+                if not app.ml_model.ensemble_model:
                     QMessageBox.warning(app, "Предупреждение", "Модели не обучены!")
                     return
-                if not hasattr(app, 'y1_test_cat') or not hasattr(app, 'y2_test_cat'):
+                if not hasattr(app, 'y1_test_cat') or not hasattr(app, 'X1_test_scaled'):
                     QMessageBox.warning(app, "Предупреждение", "Тестовые данные для ROC-AUC не подготовлены!")
                     return
                 ax = self.figure.add_subplot(111)
                 from sklearn.metrics import roc_curve, auc
-                for model_name, model in app.ml_model.models.items():
-                    y_test_cat = app.y1_test_cat if model_name == 'model1' else app.y2_test_cat
-                    X_test_scaled = app.X1_test_scaled if model_name == 'model1' else app.X2_test_scaled
-                    if y_test_cat is None or X_test_scaled is None:
-                        QMessageBox.warning(app, "Предупреждение", f"Данные для {model_name} не подготовлены!")
-                        continue
-                    y_pred = model.predict(X_test_scaled)
+                y_test_cat = app.y1_test_cat
+                X_test_scaled = app.X1_test_scaled
+                if y_test_cat is None or X_test_scaled is None:
+                    QMessageBox.warning(app, "Предупреждение", "Данные для ансамблевой модели не подготовлены!")
+                    return
+                ensemble_pred = app.ml_model.predict(X_test_scaled)
+                for i in range(3):
+                    fpr, tpr, _ = roc_curve(y_test_cat[:, i], ensemble_pred[:, i])
+                    roc_auc = auc(fpr, tpr)
+                    ax.plot(fpr, tpr, label=f'Ансамбль Класс {i} (AUC = {roc_auc:.2f})')
+                if hasattr(app.ml_model, 'model1_preds') and app.ml_model.model1_preds is not None:
                     for i in range(3):
-                        fpr, tpr, _ = roc_curve(y_test_cat[:, i], y_pred[:, i])
+                        fpr, tpr, _ = roc_curve(y_test_cat[:, i], app.ml_model.model1_preds[:, i])
                         roc_auc = auc(fpr, tpr)
-                        ax.plot(fpr, tpr, label=f'{model_name} Класс {i} (AUC = {roc_auc:.2f})')
-                if len(app.ml_model.models) >= 2:
-                    ensemble_pred = app.ml_model.ensemble_predict(app.ml_model.models['model1'], app.ml_model.models['model2'],
-                                                                 app.X1_test_scaled, weights=[0.6, 0.4])
+                        ax.plot(fpr, tpr, linestyle='--', label=f'Модель 1 Класс {i} (AUC = {roc_auc:.2f})')
+                if hasattr(app.ml_model, 'model2_preds') and app.ml_model.model2_preds is not None:
                     for i in range(3):
-                        fpr, tpr, _ = roc_curve(app.y1_test_cat[:, i], ensemble_pred[:, i])
+                        fpr, tpr, _ = roc_curve(y_test_cat[:, i], app.ml_model.model2_preds[:, i])
                         roc_auc = auc(fpr, tpr)
-                        ax.plot(fpr, tpr, linestyle='--', label=f'Ансамбль Класс {i} (AUC = {roc_auc:.2f})')
+                        ax.plot(fpr, tpr, linestyle=':', label=f'Модель 2 Класс {i} (AUC = {roc_auc:.2f})')
                 ax.plot([0, 1], [0, 1], 'k--')
                 ax.set_xlim([0.0, 1.0])
                 ax.set_ylim([0.0, 1.05])
                 ax.set_xlabel('False Positive Rate')
                 ax.set_ylabel('True Positive Rate')
-                ax.set_title('ROC кривые для всех моделей')
+                ax.set_title('ROC кривые для ансамблевой модели и базовых моделей')
                 ax.legend(loc="lower right")
                 self.canvas.draw()
 

@@ -11,7 +11,6 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import classification_report, accuracy_score, confusion_matrix
 
-
 class CreditScoringApp(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -27,10 +26,11 @@ class CreditScoringApp(QMainWindow):
 
         self.db_manager = DatabaseManager()
         self.data_processor = DataProcessor()
-        self.ml_model = MLModel()
+        self.ml_model = None
         self.visualizer = Visualizer()
         self.scorer = CreditScorer()
 
+        print("Инициализация приложения...")
         if not self.show_login_dialog():
             self.close()
 
@@ -49,32 +49,41 @@ class CreditScoringApp(QMainWindow):
         self.create_analysis_tab()
         self.create_admin_tab()
 
+        print("Запуск загрузки данных...")
         self.load_bank_data()
 
     def show_login_dialog(self):
+        print("Отображение диалога входа...")
         dialog = LoginDialog()
         if dialog.exec_():
             login = dialog.login_input.text()
             password = dialog.password_input.text()
+            print(f"Попытка входа: логин={login}, пароль={password}")
             if login == 'admin' and password == '12345':
+                print("Успешный вход.")
                 return True
             else:
                 QMessageBox.critical(self, "Ошибка", "Неверный логин или пароль. Доступ разрешен только администратору.")
+                print("Ошибка входа.")
                 return False
         return False
 
     def load_bank_data(self):
+        print("Начало загрузки данных...")
         try:
             if not self.data_processor.load_bank_data():
                 QMessageBox.critical(self, "Ошибка", "Не удалось загрузить данные из Bank.csv!")
+                print("Ошибка загрузки данных.")
                 return
             self.data1 = self.data_processor.data1
             self.data2 = self.data_processor.data2
+            print(f"Загружено {len(self.data1) + len(self.data2)} записей.")
             self.data_preview.setText(f"Загружено {len(self.data1) + len(self.data2)} записей из Bank.csv\n\nПервые 5 записей набора 1:\n" +
                                       str(self.data1.head(5)))
             QMessageBox.information(self, "Успех", "Данные из Bank.csv успешно загружены!")
             if not self.data_processor.prepare_data(self):
                 QMessageBox.critical(self, "Ошибка", "Ошибка подготовки данных! Обучение моделей не выполнено.")
+                print("Ошибка подготовки данных.")
                 return
             self.X1_train = self.data_processor.X1_train
             self.X1_train_scaled = self.data_processor.X1_train_scaled
@@ -90,52 +99,37 @@ class CreditScoringApp(QMainWindow):
             self.y2_test = self.data_processor.y2_test
             self.y2_train_cat = self.data_processor.y2_train_cat
             self.y2_test_cat = self.data_processor.y2_test_cat
+            print("Данные подготовлены.")
+
+            self.input_dim = self.X1_train_scaled.shape[1]
+            self.ml_model = MLModel(input_dim=self.input_dim)
+            print(f"Инициализирован MLModel с input_dim={self.input_dim}")
+
+            print("Запуск обучения моделей...")
             self.train_models()
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Ошибка загрузки данных: {str(e)}")
+            print(f"Исключение при загрузке данных: {str(e)}")
 
     def train_models(self):
+        print("Начало обучения моделей...")
         try:
             self.train_status.clear()
             self.ml_model.train_models(self)
             self.train_status.append("Модели успешно обучены!")
+            print("Модели обучены.")
             QMessageBox.information(self, "Успех", "Модели успешно обучены!")
         except Exception as e:
             self.train_status.append(f"Ошибка обучения моделей: {str(e)}")
+            print(f"Ошибка обучения: {str(e)}")
             QMessageBox.critical(self, "Ошибка", f"Ошибка обучения моделей: {str(e)}")
 
     def evaluate_models(self):
         try:
             self.eval_results.clear()
 
-            if 'model1' in self.ml_model.models and self.X1_test_scaled is not None and self.y1_test is not None:
-                y1_pred = self.ml_model.models['model1'].predict(self.X1_test_scaled)
-                y1_pred_classes = np.argmax(y1_pred, axis=1)
-                report1 = classification_report(
-                    self.y1_test, y1_pred_classes,
-                    target_names=['Хороший', 'Средний', 'Плохой'])
-                cm1 = confusion_matrix(self.y1_test, y1_pred_classes)
-                self.eval_results.append("=== Модель 1 ===\n")
-                self.eval_results.append(report1 + "\n")
-                self.eval_results.append(f"Точность: {accuracy_score(self.y1_test, y1_pred_classes):.4f}\n\n")
-                self.eval_results.append("Матрица ошибок:\n")
-                self.eval_results.append(str(cm1) + "\n\n")
-
-            if 'model2' in self.ml_model.models and self.X2_test_scaled is not None and self.y2_test is not None:
-                y2_pred = self.ml_model.models['model2'].predict(self.X2_test_scaled)
-                y2_pred_classes = np.argmax(y2_pred, axis=1)
-                report2 = classification_report(
-                    self.y2_test, y2_pred_classes,
-                    target_names=['Хороший', 'Средний', 'Плохой'])
-                cm2 = confusion_matrix(self.y2_test, y2_pred_classes)
-                self.eval_results.append("=== Модель 2 ===\n")
-                self.eval_results.append(report2 + "\n")
-                self.eval_results.append(f"Точность: {accuracy_score(self.y2_test, y2_pred_classes):.4f}\n\n")
-                self.eval_results.append("Матрица ошибок:\n")
-                self.eval_results.append(str(cm2) + "\n\n")
-
             if self.ml_model.ensemble_model and self.X1_test_scaled is not None and self.y1_test is not None:
-                ensemble_pred = self.ml_model.ensemble_model(self.X1_test_scaled)
+                ensemble_pred = self.ml_model.predict(self.X1_test_scaled)
                 ensemble_pred_classes = np.argmax(ensemble_pred, axis=1)
                 report_ensemble = classification_report(
                     self.y1_test, ensemble_pred_classes,
@@ -147,7 +141,31 @@ class CreditScoringApp(QMainWindow):
                 self.eval_results.append("Матрица ошибок:\n")
                 self.eval_results.append(str(cm_ensemble) + "\n\n")
 
-            QMessageBox.information(self, "Успех", "Оценка моделей завершена!")
+                if hasattr(self.ml_model, 'model1_preds') and self.ml_model.model1_preds is not None:
+                    model1_pred_classes = np.argmax(self.ml_model.model1_preds, axis=1)
+                    report1 = classification_report(
+                        self.y1_test, model1_pred_classes,
+                        target_names=['Хороший', 'Средний', 'Плохой'])
+                    cm1 = confusion_matrix(self.y1_test, model1_pred_classes)
+                    self.eval_results.append("=== Модель 1 ===\n")
+                    self.eval_results.append(report1 + "\n")
+                    self.eval_results.append(f"Точность: {accuracy_score(self.y1_test, model1_pred_classes):.4f}\n\n")
+                    self.eval_results.append("Матрица ошибок:\n")
+                    self.eval_results.append(str(cm1) + "\n\n")
+
+                if hasattr(self.ml_model, 'model2_preds') and self.ml_model.model2_preds is not None:
+                    model2_pred_classes = np.argmax(self.ml_model.model2_preds, axis=1)
+                    report2 = classification_report(
+                        self.y1_test, model2_pred_classes,
+                        target_names=['Хороший', 'Средний', 'Плохой'])
+                    cm2 = confusion_matrix(self.y1_test, model2_pred_classes)
+                    self.eval_results.append("=== Модель 2 ===\n")
+                    self.eval_results.append(report2 + "\n")
+                    self.eval_results.append(f"Точность: {accuracy_score(self.y1_test, model2_pred_classes):.4f}\n\n")
+                    self.eval_results.append("Матрица ошибок:\n")
+                    self.eval_results.append(str(cm2) + "\n\n")
+
+                QMessageBox.information(self, "Успех", "Оценка моделей завершена!")
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Ошибка оценки моделей: {str(e)}")
 
@@ -332,10 +350,9 @@ class CreditScoringApp(QMainWindow):
 
     def calculate_score(self):
         try:
-            if not self.ml_model.models:
+            if not self.ml_model.ensemble_model:
                 QMessageBox.warning(self, "Предупреждение", "Модели не обучены!")
                 return
-
 
             try:
                 client_data = {
@@ -366,7 +383,6 @@ class CreditScoringApp(QMainWindow):
                 self.score_result.setText(f"Ошибка: {str(e)}")
                 return
 
-
             input_data = {
                 'age': [client_data['age']],
                 'income': [client_data['income']],
@@ -388,7 +404,6 @@ class CreditScoringApp(QMainWindow):
             for emp_type in ['Полная занятость', 'Частичная занятость', 'Самозанятый', 'Безработный']:
                 input_data[f'employment_type_{emp_type}'] = [1 if client_data['employment_type'] == emp_type else 0]
 
-
             df = pd.DataFrame(input_data)
 
             missing_cols = [col for col in self.data_processor.X1_train.columns if col not in df.columns]
@@ -396,19 +411,15 @@ class CreditScoringApp(QMainWindow):
                 df[col] = 0
             df = df[self.data_processor.X1_train.columns]
 
-
             X_scaled = self.scalers['scaler1'].transform(df)
 
-
-            ensemble_pred = self.ml_model.ensemble_model(X_scaled)[0]
+            ensemble_pred = self.ml_model.predict(X_scaled)[0]
             pred_class = np.argmax(ensemble_pred)
             class_names = ['Хороший', 'Средний', 'Плохой']
 
-
             total_score = (ensemble_pred[0] * 100 + ensemble_pred[1] * 50) / (
-                        ensemble_pred[0] + ensemble_pred[1] + ensemble_pred[2])
+                    ensemble_pred[0] + ensemble_pred[1] + ensemble_pred[2])
             loan_term_months = client_data['loan_term']
-
 
             if pred_class == 0:
                 color = "green"
@@ -420,11 +431,9 @@ class CreditScoringApp(QMainWindow):
                 color = "red"
                 comment = "Высокий риск. Кредит не рекомендуется к выдаче."
 
-
             client_id = self.db_manager.save_client(self, client_data, total_score, class_names[pred_class], comment)
             if not client_id:
                 return
-
 
             result_html = f"""
             <div style="color:{color}; font-weight:bold; font-size:14px; margin-bottom:10px;">
@@ -444,13 +453,11 @@ class CreditScoringApp(QMainWindow):
             self.score_comment.setHtml(result_html)
             self.current_client_id = client_id
 
-
             self.right_panel.layout().removeWidget(self.analysis_group)
             self.analysis_group.deleteLater()
             self.analysis_group = self.scorer.display_scoring_breakdown(client_data, total_score,
                                                                         class_names[pred_class])
             self.right_panel.layout().addWidget(self.analysis_group)
-
 
             print(f"Входные данные: {df}")
             print(f"Масштабированные данные: {X_scaled}")
@@ -465,3 +472,4 @@ class CreditScoringApp(QMainWindow):
     def closeEvent(self, event):
         self.db_manager.close()
         event.accept()
+
