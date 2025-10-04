@@ -78,7 +78,7 @@ project/
 - локализация и кириллица в отчётах
 ---
 ## 💻 Установка и запуск
-- git clone https://github.com/<yourusername>/credit-scoring-system.git
+- git clone https://github.com
 - cd credit-scoring-system
 - pip install -r requirements.txt
 - python main.py
