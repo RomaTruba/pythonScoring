@@ -55,24 +55,20 @@
 
 ## 🧩 Структура проекта
 project/
-│
-├── main.py                         # Точка входа (PyQt5 GUI)
-├── model_trainer.py                # Обучение ансамбля
-├── scoring.py                      # Расчёт скоринга
-├── vizualization.py                # Построение графиков
-│
+├── main.py # Точка входа (PyQt5 GUI)
+├── model_trainer.py # Обучение ансамбля
+├── scoring.py # Расчёт скоринга
+├── vizualization.py # Построение графиков
 ├── src/
-│   ├── app.py                      # Основной GUI-класс
-│   ├── data_generator.py           # Загрузка и обработка Bank.csv
-│
+│ ├── app.py # Основной GUI-класс
+│ ├── data_generator.py # Загрузка и обработка Bank.csv
 ├── tests/
-│   ├── test_data_generation.py     
-│   ├── test_gui.py                 
-│   ├── test_model_trainer.py       
-│   ├── test_report_localization.py 
-│
-├── Bank.csv                        # Исходные данные
-└── requirements.txt                # Зависимости
+│ ├── test_data_generation.py
+│ ├── test_gui.py
+│ ├── test_model_trainer.py
+│ ├── test_report_localization.py
+├── Bank.csv # Исходные данные
+└── requirements.txt # Зависимости
 ---
 ## 🧪 Тестирование
 Проект содержит **PyTest**-тесты:
@@ -82,10 +78,10 @@ project/
 - локализация и кириллица в отчётах
 ---
 ## 💻 Установка и запуск
--git clone https://github.com/<yourusername>/credit-scoring-system.git
--cd credit-scoring-system
--pip install -r requirements.txt
--python main.py
+- git clone https://github.com/<yourusername>/credit-scoring-system.git
+- cd credit-scoring-system
+- pip install -r requirements.txt
+- python main.py
 ---
 ## 🧰 Используемые технологии
 - Категория	Технологии
